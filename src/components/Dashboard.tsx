@@ -10,11 +10,8 @@ import TopCompetitorsPanel from "@/components/TopCompetitorsPanel";
 import FullCompetitionTable from "@/components/FullCompetitionTable";
 import StatsRow from "@/components/StatsRow";
 import { DEFAULT_STORE } from "@/data/demo-competitors";
-import type {
-  Competitor,
-  CompetitorSearchResponse,
-  StoreLocation,
-} from "@/types/competitor";
+import { searchCompetitors } from "@/lib/search-competitors";
+import type { Competitor, StoreLocation } from "@/types/competitor";
 
 const CompetitorsMap = dynamic(() => import("@/components/CompetitorsMap"), {
   ssr: false,
@@ -45,18 +42,12 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({
-        lat: values.lat,
-        lng: values.lng,
-        radius: values.radius,
+      const data = await searchCompetitors({
         name: values.name,
+        lat: Number(values.lat),
+        lng: Number(values.lng),
+        radiusKm: Number(values.radius),
       });
-      const res = await fetch(`/api/competitors?${params}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Search failed");
-      }
-      const data = (await res.json()) as CompetitorSearchResponse;
       setStore(data.store);
       setCompetitors(data.competitors);
       setSource(data.source);
