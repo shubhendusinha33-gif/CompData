@@ -10,7 +10,7 @@ Enable GitHub Pages once if needed: Settings → Pages → branch → `/docs`.
 
 ### Features
 - Corporate Exec Check layout
-- Auto store name from lat/long (`VMM — Dwarka Mod`)
+- Auto store name from lat/long (`VMM — Dwarka Mod`) via Google Geocoding (if API key) or BigDataCloud — no Nominatim required
 - Radius presets **5 km** / **10 km**
 - Priority competitor allowlist (D-Mart, Reliance, Zudio, V-Mart, Pantaloons, …)
 - Single-store + **bulk CSV upload** (`Store cd`, `lat`, `Long`)
