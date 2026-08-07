@@ -1,6 +1,15 @@
 "use client";
 
-import { Star, Phone, MapPin, ExternalLink } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Star,
+  Phone,
+  MapPin,
+  ExternalLink,
+  Search,
+  ArrowDownWideNarrow,
+  ArrowUpWideNarrow,
+} from "lucide-react";
 import type { Competitor } from "@/types/competitor";
 import {
   brandColor,
@@ -8,24 +17,63 @@ import {
   formatDistance,
   formatSize,
 } from "@/lib/geo";
+import {
+  searchCompetitorsList,
+  sortCompetitorsByDistance,
+  type DistanceSort,
+} from "@/lib/competitor-filter";
 
 export default function FullCompetitionTable({
   competitors,
 }: {
   competitors: Competitor[];
 }) {
+  const [query, setQuery] = useState("");
+  const [distanceSort, setDistanceSort] = useState<DistanceSort>("asc");
+
+  const rows = useMemo(() => {
+    const filtered = searchCompetitorsList(competitors, query);
+    return sortCompetitorsByDistance(filtered, distanceSort);
+  }, [competitors, query, distanceSort]);
+
   return (
-    <section id="full-analysis" className="panel full-analysis animate-rise">
+    <section id="full-analysis" className="panel full-analysis">
       <header className="panel-head">
         <div>
           <h2>Full competition analysis</h2>
           <p className="panel-sub">
-            Priority organized retailers only — rating, distance, category,
-            address &amp; contact
+            One nearest store per priority brand — Landmark Lifestyle only (not
+            generic “Lifestyle” shops)
           </p>
         </div>
-        <span className="count-pill">{competitors.length} stores</span>
+        <span className="count-pill">{rows.length} brands</span>
       </header>
+
+      <div className="list-toolbar">
+        <label className="list-search">
+          <Search size={14} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search brand / address / category"
+            aria-label="Search full competitor list"
+          />
+        </label>
+        <button
+          type="button"
+          className="btn-ghost sort-btn"
+          onClick={() =>
+            setDistanceSort((d) => (d === "asc" ? "desc" : "asc"))
+          }
+        >
+          {distanceSort === "asc" ? (
+            <ArrowUpWideNarrow size={15} />
+          ) : (
+            <ArrowDownWideNarrow size={15} />
+          )}
+          Sort distance {distanceSort === "asc" ? "↑" : "↓"}
+        </button>
+      </div>
 
       <div className="analysis-scroll">
         <table className="analysis-table">
@@ -41,18 +89,19 @@ export default function FullCompetitionTable({
             </tr>
           </thead>
           <tbody>
-            {competitors.map((c) => (
+            {rows.map((c) => (
               <tr key={c.id}>
                 <td>
                   <div className="brand-cell">
                     <span
                       className="brand-avatar"
-                      style={{ background: brandColor(c.name) }}
+                      style={{ background: brandColor(c.brand) }}
                     >
-                      {brandInitial(c.name)}
+                      {brandInitial(c.brand)}
                     </span>
                     <div>
                       <div className="brand-name">{c.brand}</div>
+                      <div className="muted small">{c.name}</div>
                       {c.mapsUrl && (
                         <a
                           href={c.mapsUrl}
@@ -105,10 +154,10 @@ export default function FullCompetitionTable({
                 <td>{formatSize(c.sizeSqFt)}</td>
               </tr>
             ))}
-            {competitors.length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="empty-cell">
-                  Run a search to populate competitor details.
+                  No matching priority competitors.
                 </td>
               </tr>
             )}
