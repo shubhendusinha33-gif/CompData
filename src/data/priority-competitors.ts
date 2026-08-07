@@ -143,15 +143,20 @@ const ALIASES: Record<string, string[]> = {
   "CARREFOUR": ["CARREFOUR MARKET", "CARREFOUR HYPERMARKET", "CARREFOUR INDIA"],
   "BRAND FACTORY": ["BRANDFACTORY"],
   "WESTSIDE": ["WEST SIDE", "WESTSIDE TATA"],
-  // Landmark Group Lifestyle only — bare "Lifestyle" is rejected (STRICT_BRANDS)
+  // Landmark Group Lifestyle — prefer Landmark phrasing; bare "Lifestyle…"
+  // only when it is the FIRST word (rejects "Healthy Lifestyle Spa" etc.)
   "LIFESTYLE": [
-    "LIFESTYLE STORES",
-    "LIFESTYLE STORE",
     "LANDMARK LIFESTYLE",
     "LIFESTYLE BY LANDMARK",
     "LANDMARK GROUP LIFESTYLE",
+    "LIFESTYLE STORES",
+    "LIFESTYLE STORE",
   ],
 };
+
+/** Reject non-retail noise when a generic brand word leads the place name. */
+const NON_RETAIL_NOISE =
+  /\b(SPA|SALON|GYM|YOGA|FITNESS|CLINIC|CAFE|COFFEE|RESTAURANT|HOTEL|PG|HOSTEL|COACH|CONSULT|THERAPY|WELLNESS|BEAUTY|PARLOUR|PARLOR)\b/;
 
 function normalize(value: string): string {
   return value
@@ -167,6 +172,14 @@ function compact(value: string): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** True when brand phrase is the leading tokens of the place name. */
+function anchoredLeading(hayRaw: string, needleRaw: string): boolean {
+  const hay = normalize(hayRaw);
+  const needle = normalize(needleRaw);
+  if (!hay || !needle) return false;
+  return hay === needle || hay.startsWith(`${needle} `);
 }
 
 /** Strict hit: whole phrase as words / compact equality — no loose substring. */
@@ -227,15 +240,58 @@ export interface PriorityMatch {
 
 export function matchPriorityBrand(placeName: string): PriorityMatch | null {
   if (!placeName?.trim()) return null;
+  if (NON_RETAIL_NOISE.test(normalize(placeName))) {
+    // Still allow if Landmark Lifestyle / known chain phrasing is explicit
+    if (!/LANDMARK|PANTALOONS|ZUDIO|DMART|D MART|RELIANCE|WESTSIDE|CARREFOUR/i.test(placeName)) {
+      // fall through with extra caution for strict brands only via aliases below
+    }
+  }
 
   let best: PriorityMatch | null = null;
 
   PRIORITY_COMPETITORS.forEach((brand, index) => {
     const aliases = ALIASES[brand] ?? [];
     const strict = STRICT_BRANDS.has(brand);
-    // Strict brands: aliases only (never bare brand like "LIFESTYLE")
-    const needles = strict ? aliases : [brand, ...aliases];
-    const hitFn = strict ? strictNeedleHits : looseNeedleHits;
+
+    if (strict) {
+      // Strict brands: aliases OR leading-token match on the brand itself
+      // (e.g. "Lifestyle - Select Citywalk" → Landmark Lifestyle)
+      const needles = [...aliases];
+      let hit = false;
+      let score = 0;
+
+      for (const needle of needles) {
+        if (!strictNeedleHits(placeName, needle)) continue;
+        hit = true;
+        score = Math.max(score, compact(needle).length);
+      }
+
+      // Leading "Lifestyle …" / "City Kart …" / "Max …" only if not spa/gym noise
+      if (
+        !hit &&
+        anchoredLeading(placeName, brand) &&
+        !NON_RETAIL_NOISE.test(normalize(placeName))
+      ) {
+        // Extra guard: CITY KART / CITI STYLE / LIFESTYLE must lead the name
+        hit = true;
+        score = compact(brand).length;
+      }
+
+      // MAX alone is too weak unless leading and not "Maxima" etc. — already anchored
+      if (hit) {
+        if (
+          !best ||
+          score > best.score ||
+          (score === best.score && index < best.priorityIndex)
+        ) {
+          best = { brand, priorityIndex: index, score };
+        }
+      }
+      return;
+    }
+
+    const needles = [brand, ...aliases];
+    const hitFn = looseNeedleHits;
 
     for (const needle of needles) {
       if (!hitFn(placeName, needle)) continue;

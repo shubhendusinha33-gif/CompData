@@ -45,7 +45,7 @@ export default function StoreSearchForm({
             <input
               value={values.name}
               onChange={(e) => onChange({ ...values, name: e.target.value })}
-              placeholder="Auto from Google — e.g. Vishal Mega Mart Dwarka Mod"
+              placeholder="Auto → VMM-Uttam Nagar"
             />
             <button
               type="button"
