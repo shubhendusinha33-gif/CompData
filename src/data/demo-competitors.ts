@@ -2,35 +2,34 @@ import type { Competitor } from "@/types/competitor";
 import { distanceKm } from "@/lib/geo";
 
 /**
- * Demo competitors relative to a store at (originLat, originLng).
- * Offsets approximate the sample layout from the product brief.
+ * Demo competitors drawn from the priority organized-retailer list.
  */
 const DEMO_OFFSETS: Omit<Competitor, "id" | "distanceKm" | "lat" | "lng">[] = [
   {
     name: "Zudio",
-    brand: "Zudio",
+    brand: "ZUDIO",
     category: "Fashion",
     rating: 4.2,
     ratingCount: 1840,
     openedOn: "Mar 2022",
-    address: "Ground Floor, City Centre Mall, Sector 12",
+    address: "Ground Floor, City Centre Mall",
     phone: "+91 98765 43210",
     sizeSqFt: 8500,
   },
   {
     name: "V-Mart",
-    brand: "V-Mart",
+    brand: "V-MART",
     category: "Fashion",
     rating: 4.0,
     ratingCount: 962,
     openedOn: "Aug 2019",
-    address: "Shop 4-7, Market Road, Near Bus Stand",
+    address: "Shop 4-7, Market Road",
     phone: "+91 98111 22334",
     sizeSqFt: 12000,
   },
   {
     name: "D-Mart",
-    brand: "D-Mart",
+    brand: "D-MART",
     category: "Hypermarket",
     rating: 4.4,
     ratingCount: 5120,
@@ -41,7 +40,7 @@ const DEMO_OFFSETS: Omit<Competitor, "id" | "distanceKm" | "lat" | "lng">[] = [
   },
   {
     name: "Reliance Smart",
-    brand: "Reliance Smart",
+    brand: "RELIANCE SMART",
     category: "Grocery",
     rating: 4.1,
     ratingCount: 2301,
@@ -51,19 +50,19 @@ const DEMO_OFFSETS: Omit<Competitor, "id" | "distanceKm" | "lat" | "lng">[] = [
     sizeSqFt: 18000,
   },
   {
-    name: "Smart Bazaar",
-    brand: "Smart Bazaar",
+    name: "Reliance Smart Bazaar",
+    brand: "RELIANCE SMART BAZAAR",
     category: "Grocery",
     rating: 3.9,
     ratingCount: 1455,
     openedOn: "Jun 2021",
-    address: "NH-24 Service Lane, Block C",
+    address: "NH Service Lane, Block C",
     phone: "+91 120 456 7890",
     sizeSqFt: 22000,
   },
   {
     name: "Pantaloons",
-    brand: "Pantaloons",
+    brand: "PANTALOONS",
     category: "Fashion",
     rating: 4.3,
     ratingCount: 2876,
@@ -74,7 +73,7 @@ const DEMO_OFFSETS: Omit<Competitor, "id" | "distanceKm" | "lat" | "lng">[] = [
   },
   {
     name: "Max",
-    brand: "Max",
+    brand: "MAX RETAIL",
     category: "Fashion",
     rating: 4.0,
     ratingCount: 1102,
@@ -84,8 +83,8 @@ const DEMO_OFFSETS: Omit<Competitor, "id" | "distanceKm" | "lat" | "lng">[] = [
     sizeSqFt: 7200,
   },
   {
-    name: "More",
-    brand: "More",
+    name: "More Mega Store",
+    brand: "MORE MEGA STORE",
     category: "Hypermarket",
     rating: 3.8,
     ratingCount: 890,
@@ -94,9 +93,52 @@ const DEMO_OFFSETS: Omit<Competitor, "id" | "distanceKm" | "lat" | "lng">[] = [
     phone: "+91 80 4123 4567",
     sizeSqFt: 28000,
   },
+  {
+    name: "Westside",
+    brand: "WESTSIDE",
+    category: "Fashion",
+    rating: 4.2,
+    ratingCount: 1660,
+    openedOn: "May 2015",
+    address: "2nd Floor, Central Mall",
+    phone: "+91 22 6665 0000",
+    sizeSqFt: 14000,
+  },
+  {
+    name: "Lifestyle",
+    brand: "LIFESTYLE",
+    category: "Lifestyle",
+    rating: 4.1,
+    ratingCount: 2104,
+    openedOn: "Oct 2014",
+    address: "Anchor Store, City Square",
+    phone: "+91 40 4000 1234",
+    sizeSqFt: 32000,
+  },
+  {
+    name: "Shoppers Stop",
+    brand: "SHOPPERS STOP",
+    category: "Department Store",
+    rating: 4.0,
+    ratingCount: 3340,
+    openedOn: "Jul 2012",
+    address: "Mall Road, Sector 18",
+    phone: "+91 22 4245 0000",
+    sizeSqFt: 48000,
+  },
+  {
+    name: "Reliance Trends",
+    brand: "RELIANCE TRENDS",
+    category: "Fashion",
+    rating: 4.0,
+    ratingCount: 980,
+    openedOn: "Dec 2019",
+    address: "Ground Floor, Plaza Walk",
+    phone: "+91 1800 891 1000",
+    sizeSqFt: 9000,
+  },
 ];
 
-/** Relative offsets in km (north, east) for demo placement */
 const OFFSETS_KM: [number, number][] = [
   [0.55, 0.72],
   [-0.4, 1.1],
@@ -106,6 +148,10 @@ const OFFSETS_KM: [number, number][] = [
   [1.5, 0.9],
   [-1.3, 0.4],
   [0.8, -1.6],
+  [2.1, 0.3],
+  [-1.8, 1.2],
+  [0.6, 2.4],
+  [-2.2, -0.8],
 ];
 
 function offsetLatLng(
@@ -139,9 +185,8 @@ export function buildDemoCompetitors(
   }).filter((c) => c.distanceKm <= radiusKm);
 }
 
-/** Sample VMM store — Noida Sector 18 area (illustrative). */
 export const DEFAULT_STORE = {
-  name: "Vishal Mega Mart — Sample Store",
+  name: "VMM — Sample Store",
   lat: 28.5703,
   lng: 77.3219,
   radiusKm: 5,

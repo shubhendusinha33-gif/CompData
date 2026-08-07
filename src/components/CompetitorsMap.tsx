@@ -11,14 +11,15 @@ function storeIcon() {
   return L.divIcon({
     className: "",
     html: `<div style="
-      width:36px;height:36px;border-radius:50%;
-      background:#c8102e;border:3px solid #fff;
-      box-shadow:0 4px 14px rgba(200,16,46,.45);
+      width:34px;height:34px;border-radius:4px;
+      background:#9e1b32;border:2px solid #fff;
+      box-shadow:0 2px 8px rgba(11,28,44,.35);
       display:flex;align-items:center;justify-content:center;
-      color:#fff;font-weight:700;font-size:11px;font-family:system-ui;
+      color:#fff;font-weight:700;font-size:10px;letter-spacing:.04em;
+      font-family:IBM Plex Sans,system-ui,sans-serif;
     ">VMM</div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
   });
 }
 
@@ -28,15 +29,15 @@ function competitorIcon(name: string) {
   return L.divIcon({
     className: "",
     html: `<div style="
-      width:28px;height:28px;border-radius:8px;
-      background:${color};border:2px solid #fff;
-      box-shadow:0 2px 8px rgba(0,0,0,.25);
+      width:26px;height:26px;border-radius:4px;
+      background:${color};border:1px solid #fff;
+      box-shadow:0 1px 4px rgba(0,0,0,.2);
       display:flex;align-items:center;justify-content:center;
-      color:#fff;font-weight:700;font-size:13px;text-transform:lowercase;
-      font-family:system-ui;
+      color:#fff;font-weight:650;font-size:11px;text-transform:uppercase;
+      font-family:IBM Plex Sans,system-ui,sans-serif;
     ">${letter}</div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
   });
 }
 

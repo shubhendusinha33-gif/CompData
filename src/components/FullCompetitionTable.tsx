@@ -20,7 +20,8 @@ export default function FullCompetitionTable({
         <div>
           <h2>Full competition analysis</h2>
           <p className="panel-sub">
-            Ratings, distance, category, open date, address, contact &amp; size
+            Priority organized retailers only — rating, distance, category,
+            address &amp; contact
           </p>
         </div>
         <span className="count-pill">{competitors.length} stores</span>
