@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildDemoCompetitors, DEFAULT_STORE } from "@/data/demo-competitors";
+import { filterPriorityCompetitors } from "@/lib/competitor-filter";
 import { fetchGoogleCompetitors } from "@/lib/google-places";
-import { sortByDistance } from "@/lib/geo";
 import type { CompetitorSearchResponse } from "@/types/competitor";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const lat = Number(searchParams.get("lat") ?? DEFAULT_STORE.lat);
   const lng = Number(searchParams.get("lng") ?? DEFAULT_STORE.lng);
-  const radiusKm = Number(searchParams.get("radius") ?? DEFAULT_STORE.radiusKm);
+  const radiusKm = Number(searchParams.get("radius") ?? 5);
   const forceDemo = searchParams.get("demo") === "1";
   const storeName =
     searchParams.get("name")?.trim() || DEFAULT_STORE.name;
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
   try {
     if (apiKey && !forceDemo) {
-      const competitors = sortByDistance(
+      const competitors = filterPriorityCompetitors(
         await fetchGoogleCompetitors(lat, lng, radiusKm, apiKey)
       );
       const body: CompetitorSearchResponse = {
@@ -48,27 +48,13 @@ export async function GET(request: NextRequest) {
         source: "google",
         message:
           competitors.length === 0
-            ? "No retail competitors found in this radius. Try a larger radius."
-            : undefined,
+            ? "No priority organized retailers found in this radius."
+            : "Live data filtered to priority organized retailers.",
       };
       return NextResponse.json(body);
     }
 
-    const competitors = sortByDistance(
-      buildDemoCompetitors(lat, lng, radiusKm)
-    );
-    const body: CompetitorSearchResponse = {
-      store,
-      competitors,
-      source: "demo",
-      message: apiKey
-        ? undefined
-        : "Demo mode — add GOOGLE_MAPS_API_KEY to enable live Google Places data. Opened-on and size fields are illustrative in demo.",
-    };
-    return NextResponse.json(body);
-  } catch (err) {
-    console.error(err);
-    const competitors = sortByDistance(
+    const competitors = filterPriorityCompetitors(
       buildDemoCompetitors(lat, lng, radiusKm)
     );
     const body: CompetitorSearchResponse = {
@@ -76,7 +62,20 @@ export async function GET(request: NextRequest) {
       competitors,
       source: "demo",
       message:
-        "Live Google Places request failed; showing demo competitors instead.",
+        "Demo mode — priority organized retailers only. Mom-and-pop stores excluded.",
+    };
+    return NextResponse.json(body);
+  } catch (err) {
+    console.error(err);
+    const competitors = filterPriorityCompetitors(
+      buildDemoCompetitors(lat, lng, radiusKm)
+    );
+    const body: CompetitorSearchResponse = {
+      store,
+      competitors,
+      source: "demo",
+      message:
+        "Live Google Places request failed; showing priority demo competitors.",
     };
     return NextResponse.json(body);
   }

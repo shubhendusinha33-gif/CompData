@@ -13,14 +13,14 @@ export default function TopCompetitorsPanel({
   radiusKm: number;
   onViewAll: () => void;
 }) {
-  const top = competitors.slice(0, 8);
+  const top = competitors.slice(0, 10);
 
   return (
-    <section className="panel top-competitors animate-rise">
+    <section className="panel top-competitors">
       <header className="panel-head">
-        <h2>Top competitors (within {radiusKm} km)</h2>
+        <h2>Priority competitors (within {radiusKm} km)</h2>
         <button type="button" className="link-accent" onClick={onViewAll}>
-          View all <span aria-hidden>›</span>
+          View all ›
         </button>
       </header>
 
@@ -34,19 +34,15 @@ export default function TopCompetitorsPanel({
             </tr>
           </thead>
           <tbody>
-            {top.map((c, i) => (
-              <tr
-                key={c.id}
-                style={{ animationDelay: `${i * 40}ms` }}
-                className="row-fade"
-              >
+            {top.map((c) => (
+              <tr key={c.id}>
                 <td>
                   <div className="brand-cell">
                     <span
                       className="brand-avatar"
-                      style={{ background: brandColor(c.name) }}
+                      style={{ background: brandColor(c.brand) }}
                     >
-                      {brandInitial(c.name)}
+                      {brandInitial(c.brand)}
                     </span>
                     <span className="brand-name">{c.brand}</span>
                   </div>
@@ -60,7 +56,7 @@ export default function TopCompetitorsPanel({
             {top.length === 0 && (
               <tr>
                 <td colSpan={3} className="empty-cell">
-                  No competitors in range.
+                  No priority competitors in range.
                 </td>
               </tr>
             )}
@@ -69,8 +65,8 @@ export default function TopCompetitorsPanel({
       </div>
 
       <button type="button" className="btn-outline-full" onClick={onViewAll}>
-        View full competition analysis
-        <ArrowRight size={16} />
+        Full competition analysis
+        <ArrowRight size={15} />
       </button>
     </section>
   );

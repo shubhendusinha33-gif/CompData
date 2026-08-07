@@ -1,6 +1,7 @@
 "use client";
 
-import { Search, LocateFixed, KeyRound } from "lucide-react";
+import { useRef } from "react";
+import { Search, LocateFixed, Download, Loader2 } from "lucide-react";
 import { DEFAULT_STORE } from "@/data/demo-competitors";
 
 export interface SearchFormValues {
@@ -15,13 +16,27 @@ export default function StoreSearchForm({
   values,
   onChange,
   onSubmit,
+  onAutoName,
+  onDownloadCsv,
   loading,
+  resolvingName,
+  hasResults,
+  showApiKey,
+  onToggleApiKey,
 }: {
   values: SearchFormValues;
   onChange: (next: SearchFormValues) => void;
   onSubmit: () => void;
+  onAutoName: () => void;
+  onDownloadCsv: () => void;
   loading: boolean;
+  resolvingName: boolean;
+  hasResults: boolean;
+  showApiKey: boolean;
+  onToggleApiKey: () => void;
 }) {
+  const keyRef = useRef<HTMLInputElement>(null);
+
   return (
     <form
       className="store-form"
@@ -33,11 +48,22 @@ export default function StoreSearchForm({
       <div className="form-grid">
         <label className="field field-wide">
           <span>Store name</span>
-          <input
-            value={values.name}
-            onChange={(e) => onChange({ ...values, name: e.target.value })}
-            placeholder="Vishal Mega Mart — City"
-          />
+          <div className="field-with-action">
+            <input
+              value={values.name}
+              onChange={(e) => onChange({ ...values, name: e.target.value })}
+              placeholder="Auto-fills from lat/long — e.g. VMM — Dwarka Mod"
+            />
+            <button
+              type="button"
+              className="btn-inline"
+              onClick={onAutoName}
+              disabled={resolvingName || loading}
+              title="Resolve name from coordinates"
+            >
+              {resolvingName ? <Loader2 size={14} className="spin" /> : "Auto"}
+            </button>
+          </div>
         </label>
         <label className="field">
           <span>Latitude</span>
@@ -71,27 +97,48 @@ export default function StoreSearchForm({
             required
           />
         </label>
-        <label className="field field-wide">
-          <span>
-            <KeyRound size={12} className="inline-key" /> Google Maps API key
-            (optional — for live data)
-          </span>
+      </div>
+
+      <div className="radius-presets" role="group" aria-label="Radius presets">
+        <span className="preset-label">Quick radius</span>
+        {[5, 10].map((km) => (
+          <button
+            key={km}
+            type="button"
+            className={`preset-chip ${Number(values.radius) === km ? "active" : ""}`}
+            onClick={() => onChange({ ...values, radius: String(km) })}
+          >
+            {km} km
+          </button>
+        ))}
+      </div>
+
+      <div className="settings-row">
+        <button type="button" className="link-quiet" onClick={onToggleApiKey}>
+          {showApiKey ? "Hide API settings" : "API settings"}
+        </button>
+      </div>
+
+      {showApiKey && (
+        <label className="field field-wide api-key-field">
+          <span>Google Maps API key</span>
           <input
+            ref={keyRef}
             type="password"
-            autoComplete="off"
+            autoComplete="new-password"
+            name="google-maps-api-key"
             spellCheck={false}
             value={values.apiKey}
             onChange={(e) => onChange({ ...values, apiKey: e.target.value })}
-            placeholder="Paste key to switch from demo → live Places"
+            placeholder="••••••••••••••••"
+            aria-label="Google Maps API key (masked)"
           />
+          <span className="field-help">
+            Stored in this browser only. Enable Maps JavaScript API + Places API.
+          </span>
         </label>
-      </div>
-      <p className="key-hint">
-        Create a key in Google Cloud with <strong>Maps JavaScript API</strong> +{" "}
-        <strong>Places API</strong>. Restrict by HTTP referrer to{" "}
-        <code>https://shubhendusinha33-gif.github.io/*</code>. Key stays in this
-        browser only.
-      </p>
+      )}
+
       <div className="form-actions">
         <button
           type="button"
@@ -102,15 +149,24 @@ export default function StoreSearchForm({
               name: DEFAULT_STORE.name,
               lat: String(DEFAULT_STORE.lat),
               lng: String(DEFAULT_STORE.lng),
-              radius: String(DEFAULT_STORE.radiusKm),
+              radius: "5",
             })
           }
         >
-          <LocateFixed size={16} />
-          Use sample VMM
+          <LocateFixed size={15} />
+          Sample VMM
+        </button>
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={onDownloadCsv}
+          disabled={!hasResults}
+        >
+          <Download size={15} />
+          Download CSV
         </button>
         <button type="submit" className="btn-primary" disabled={loading}>
-          <Search size={16} />
+          <Search size={15} />
           {loading ? "Scanning…" : "Find competitors"}
         </button>
       </div>

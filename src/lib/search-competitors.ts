@@ -1,4 +1,5 @@
 import { buildDemoCompetitors, DEFAULT_STORE } from "@/data/demo-competitors";
+import { filterPriorityCompetitors } from "@/lib/competitor-filter";
 import {
   fetchBrowserGoogleCompetitors,
   getStoredApiKey,
@@ -11,19 +12,31 @@ export interface SearchInput {
   lat: number;
   lng: number;
   radiusKm: number;
-  /** Optional override; otherwise uses localStorage / NEXT_PUBLIC key */
   apiKey?: string;
+  /** When false, return all Places hits (not recommended). Default true. */
+  priorityOnly?: boolean;
+  signal?: AbortSignal;
+}
+
+function applyPriority(
+  competitors: CompetitorSearchResponse["competitors"],
+  priorityOnly: boolean
+) {
+  return priorityOnly
+    ? filterPriorityCompetitors(competitors)
+    : sortByDistance(competitors);
 }
 
 /**
- * Browser-safe competitor search priority:
- * 1) Google Places via Maps JS (works on GitHub Pages with an API key)
- * 2) Same-origin /api/competitors (Node / Vercel host)
- * 3) Built-in demo dataset
+ * Competitor search priority:
+ * 1) Google Places via Maps JS (optional API key)
+ * 2) Same-origin /api/competitors
+ * 3) Demo dataset of priority organized retailers
  */
 export async function searchCompetitors(
   input: SearchInput
 ): Promise<CompetitorSearchResponse> {
+  const priorityOnly = input.priorityOnly !== false;
   const store = {
     name: input.name.trim() || DEFAULT_STORE.name,
     lat: input.lat,
@@ -45,17 +58,22 @@ export async function searchCompetitors(
     throw new Error("Radius must be between 0 and 50 km");
   }
 
+  if (input.signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+
   const apiKey = (input.apiKey ?? getStoredApiKey()).trim();
 
   if (apiKey && typeof window !== "undefined") {
     try {
-      const competitors = sortByDistance(
+      const competitors = applyPriority(
         await fetchBrowserGoogleCompetitors(
           store.lat,
           store.lng,
           store.radiusKm,
           apiKey
-        )
+        ),
+        priorityOnly
       );
       return {
         store,
@@ -63,16 +81,15 @@ export async function searchCompetitors(
         source: "google",
         message:
           competitors.length === 0
-            ? "No retail competitors found in this radius. Try a larger radius or different coordinates."
-            : "Live Google Places data. Opened-on and size are not provided by Google.",
+            ? "No priority organized retailers found in this radius."
+            : "Live Google Places — priority organized retailers only (mom-and-pop excluded).",
       };
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") throw err;
       console.warn("Browser Google Places failed:", err);
-      // Continue to server API / demo
     }
   }
 
-  // Try live API when hosted on Node (dev server / Vercel).
   if (typeof window !== "undefined") {
     try {
       const params = new URLSearchParams({
@@ -84,26 +101,38 @@ export async function searchCompetitors(
       const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
       const res = await fetch(`${base}/api/competitors?${params}`, {
         headers: { Accept: "application/json" },
+        signal: input.signal,
       });
       if (res.ok) {
         const contentType = res.headers.get("content-type") || "";
         if (contentType.includes("application/json")) {
-          return (await res.json()) as CompetitorSearchResponse;
+          const data = (await res.json()) as CompetitorSearchResponse;
+          return {
+            ...data,
+            competitors: applyPriority(data.competitors, priorityOnly),
+            message:
+              data.source === "google"
+                ? "Live data filtered to priority organized retailers."
+                : data.message,
+          };
         }
       }
-    } catch {
-      // Fall through to demo — expected on GitHub Pages without a key
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") throw err;
     }
   }
 
   return {
     store,
-    competitors: sortByDistance(
-      buildDemoCompetitors(store.lat, store.lng, store.radiusKm)
+    competitors: applyPriority(
+      buildDemoCompetitors(store.lat, store.lng, store.radiusKm),
+      priorityOnly
     ),
     source: "demo",
     message: apiKey
-      ? "Google Places request failed — showing sample competitors. Check the API key (enable Maps JavaScript API + Places API, allow your site referrer)."
-      : "Demo mode — sample rivals for layout/testing. Paste a Google Maps API key above and click Find competitors for live data (no install needed).",
+      ? "Google Places unavailable — showing priority demo retailers. Verify Maps JavaScript API + Places API on the key."
+      : "Demo mode — priority organized retailers only. Add an API key in Settings for live Places.",
   };
 }
+
+export { DEFAULT_STORE };

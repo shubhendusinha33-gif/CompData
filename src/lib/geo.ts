@@ -61,7 +61,7 @@ export function inferCategoryFromName(name: string): CompetitorCategory {
 
 export function brandInitial(name: string): string {
   const cleaned = name.replace(/[^a-zA-Z0-9 ]/g, "").trim();
-  return (cleaned[0] || "?").toLowerCase();
+  return (cleaned[0] || "?").toUpperCase();
 }
 
 const BRAND_COLORS = [

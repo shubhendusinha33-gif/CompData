@@ -48,14 +48,10 @@ export default function StatsRow({
 
   return (
     <div className="stats-row">
-      {stats.map((s, i) => (
-        <article
-          key={s.label}
-          className="stat-card animate-rise"
-          style={{ animationDelay: `${i * 60}ms` }}
-        >
+      {stats.map((s) => (
+        <article key={s.label} className="stat-card">
           <div className="stat-icon">
-            <s.icon size={18} />
+            <s.icon size={16} />
           </div>
           <div>
             <p className="stat-label">{s.label}</p>
