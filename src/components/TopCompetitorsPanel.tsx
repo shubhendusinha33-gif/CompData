@@ -1,8 +1,14 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowDownWideNarrow, ArrowUpWideNarrow, ArrowRight, Search } from "lucide-react";
 import type { Competitor } from "@/types/competitor";
 import { brandColor, brandInitial, formatDistance } from "@/lib/geo";
+import {
+  searchCompetitorsList,
+  sortCompetitorsByDistance,
+  type DistanceSort,
+} from "@/lib/competitor-filter";
 
 export default function TopCompetitorsPanel({
   competitors,
@@ -13,7 +19,13 @@ export default function TopCompetitorsPanel({
   radiusKm: number;
   onViewAll: () => void;
 }) {
-  const top = competitors.slice(0, 10);
+  const [query, setQuery] = useState("");
+  const [distanceSort, setDistanceSort] = useState<DistanceSort>("asc");
+
+  const rows = useMemo(() => {
+    const filtered = searchCompetitorsList(competitors, query);
+    return sortCompetitorsByDistance(filtered, distanceSort).slice(0, 12);
+  }, [competitors, query, distanceSort]);
 
   return (
     <section className="panel top-competitors">
@@ -23,6 +35,33 @@ export default function TopCompetitorsPanel({
           View all ›
         </button>
       </header>
+
+      <div className="list-toolbar">
+        <label className="list-search">
+          <Search size={14} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search brand / category"
+            aria-label="Search competitors"
+          />
+        </label>
+        <button
+          type="button"
+          className="btn-ghost sort-btn"
+          onClick={() =>
+            setDistanceSort((d) => (d === "asc" ? "desc" : "asc"))
+          }
+          title="Sort by distance"
+        >
+          {distanceSort === "asc" ? (
+            <ArrowUpWideNarrow size={15} />
+          ) : (
+            <ArrowDownWideNarrow size={15} />
+          )}
+          Distance {distanceSort === "asc" ? "↑" : "↓"}
+        </button>
+      </div>
 
       <div className="comp-table-wrap">
         <table className="comp-table">
@@ -34,7 +73,7 @@ export default function TopCompetitorsPanel({
             </tr>
           </thead>
           <tbody>
-            {top.map((c) => (
+            {rows.map((c) => (
               <tr key={c.id}>
                 <td>
                   <div className="brand-cell">
@@ -44,7 +83,10 @@ export default function TopCompetitorsPanel({
                     >
                       {brandInitial(c.brand)}
                     </span>
-                    <span className="brand-name">{c.brand}</span>
+                    <div>
+                      <span className="brand-name">{c.brand}</span>
+                      <div className="muted small place-name">{c.name}</div>
+                    </div>
                   </div>
                 </td>
                 <td className="muted">{c.category}</td>
@@ -53,7 +95,7 @@ export default function TopCompetitorsPanel({
                 </td>
               </tr>
             ))}
-            {top.length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td colSpan={3} className="empty-cell">
                   No priority competitors in range.

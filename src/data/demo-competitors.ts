@@ -105,7 +105,7 @@ const DEMO_OFFSETS: Omit<Competitor, "id" | "distanceKm" | "lat" | "lng">[] = [
     sizeSqFt: 14000,
   },
   {
-    name: "Lifestyle",
+    name: "Lifestyle Stores",
     brand: "LIFESTYLE",
     category: "Lifestyle",
     rating: 4.1,

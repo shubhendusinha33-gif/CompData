@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { Search, LocateFixed, Download, Loader2 } from "lucide-react";
 import { DEFAULT_STORE } from "@/data/demo-competitors";
 
@@ -21,8 +20,6 @@ export default function StoreSearchForm({
   loading,
   resolvingName,
   hasResults,
-  showApiKey,
-  onToggleApiKey,
 }: {
   values: SearchFormValues;
   onChange: (next: SearchFormValues) => void;
@@ -32,11 +29,7 @@ export default function StoreSearchForm({
   loading: boolean;
   resolvingName: boolean;
   hasResults: boolean;
-  showApiKey: boolean;
-  onToggleApiKey: () => void;
 }) {
-  const keyRef = useRef<HTMLInputElement>(null);
-
   return (
     <form
       className="store-form"
@@ -52,7 +45,7 @@ export default function StoreSearchForm({
             <input
               value={values.name}
               onChange={(e) => onChange({ ...values, name: e.target.value })}
-              placeholder="Auto from Google — e.g. Vishal Mega Mart Dwarka Mod"
+              placeholder="Auto → VMM-Uttam Nagar"
             />
             <button
               type="button"
@@ -98,32 +91,6 @@ export default function StoreSearchForm({
           />
         </label>
       </div>
-
-      <div className="settings-row">
-        <button type="button" className="link-quiet" onClick={onToggleApiKey}>
-          {showApiKey ? "Hide API settings" : "API settings"}
-        </button>
-      </div>
-
-      {showApiKey && (
-        <label className="field field-wide api-key-field">
-          <span>Google Maps API key</span>
-          <input
-            ref={keyRef}
-            type="password"
-            autoComplete="new-password"
-            name="google-maps-api-key"
-            spellCheck={false}
-            value={values.apiKey}
-            onChange={(e) => onChange({ ...values, apiKey: e.target.value })}
-            placeholder="••••••••••••••••"
-            aria-label="Google Maps API key (masked)"
-          />
-          <span className="field-help">
-            Stored in this browser only. Enable Maps JavaScript API + Places API.
-          </span>
-        </label>
-      )}
 
       <div className="form-actions">
         <button

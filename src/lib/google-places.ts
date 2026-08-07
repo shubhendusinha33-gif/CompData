@@ -77,48 +77,43 @@ export async function fetchGoogleCompetitors(
 
   return [...byId.values()]
     .filter((p) => isPriorityCompetitor(p.name))
-    .map((p) => ({
-      ...p,
-      dist: distanceKm(
-        lat,
-        lng,
-        p.geometry.location.lat,
-        p.geometry.location.lng
-      ),
-    }))
-    .filter((p) => p.dist <= radiusKm + 0.05)
-    .sort((a, b) => a.dist - b.dist)
-    .slice(0, 40)
-    .map((place, index) => {
-      const name = place.name;
-      const match = matchPriorityBrand(name);
-      const types = place.types ?? [];
+    .map((p) => {
+      const name = p.name;
+      const match = matchPriorityBrand(name)!;
+      const types = p.types ?? [];
       const category =
         mapTypesToCategory(types) === "Other"
           ? inferCategoryFromName(name)
           : mapTypesToCategory(types);
-      const plat = place.geometry.location.lat;
-      const plng = place.geometry.location.lng;
+      const plat = p.geometry.location.lat;
+      const plng = p.geometry.location.lng;
+      const dist = distanceKm(lat, lng, plat, plng);
 
       const competitor: Competitor = {
-        id: place.place_id || `g-${index}`,
+        id: p.place_id,
         name,
-        brand: match?.brand ?? name.split(/[,|-]/)[0].trim(),
+        brand: match.brand,
         category,
-        distanceKm: Math.round(place.dist * 10) / 10,
-        rating: place.rating ?? null,
-        ratingCount: place.user_ratings_total ?? null,
+        distanceKm: Math.round(dist * 10) / 10,
+        rating: p.rating ?? null,
+        ratingCount: p.user_ratings_total ?? null,
         openedOn: null,
-        address: place.vicinity ?? "Address unavailable",
+        address: p.vicinity ?? "Address unavailable",
         phone: null,
         sizeSqFt: null,
         lat: plat,
         lng: plng,
-        placeId: place.place_id,
+        placeId: p.place_id,
         website: null,
-        businessStatus: place.business_status ?? null,
+        businessStatus: p.business_status ?? null,
         mapsUrl: `https://www.google.com/maps/search/?api=1&query=${plat},${plng}`,
       };
       return competitor;
-    });
+    })
+    .filter((p) => p.distanceKm <= radiusKm + 0.05)
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .reduce<Competitor[]>((acc, row) => {
+      if (!acc.some((x) => x.brand === row.brand)) acc.push(row);
+      return acc;
+    }, []);
 }

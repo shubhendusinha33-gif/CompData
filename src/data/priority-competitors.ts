@@ -82,15 +82,44 @@ export const PRIORITY_COMPETITORS = [
   "CARREFOUR",
 ] as const;
 
+/**
+ * Brands whose bare name is too generic (e.g. "Lifestyle" mom-and-pop shops).
+ * Only STRICT aliases may match — never a loose substring on the brand alone.
+ */
+const STRICT_BRANDS = new Set<string>([
+  "LIFESTYLE",
+  "CITY KART",
+  "CITI STYLE",
+  "MAX RETAIL",
+  "MORE SUPERMARKET",
+  "MEGA SHOP",
+  "UNLIMITED",
+  "YOUTH",
+  "FASHION CITY",
+  "STYLE UP",
+  "STYLE UNION",
+  "STYLE BAZAAR",
+  "BIG MART",
+  "RANK 1",
+  "M BAZAAR",
+  "START BAZAAR",
+  "GRAND MART",
+  "NATIONAL MART",
+]);
+
 /** Extra aliases so Google place names still match the priority list. */
 const ALIASES: Record<string, string[]> = {
   "D-MART": ["DMART", "D MART", "AVENUE SUPERMARTS", "D-MART INDIA"],
   "MAX RETAIL": ["MAX FASHION", "MAX RETAIL STORE", "MAX"],
   "MORE MEGA STORE": ["MORE MEGA", "MORE HYPER", "MORE MEGASTORE"],
   "MORE SUPERMARKET": ["MORE SUPERMARKET", "MORE SUPER MARKET"],
-  "SPENCER'S": ["SPENCERS", "SPENCER", "SPENCER RETAIL"],
+  "SPENCER'S": ["SPENCERS", "SPENCER RETAIL", "SPENCER S"],
   "SPAR HYPERMARKET": ["SPAR HYPER", "SPAR INDIA", "SPAR"],
-  "TATA STAR BAZAAR HYPERMARKET": ["STAR BAZAAR", "STARBAZAAR", "TATA STAR BAZAAR"],
+  "TATA STAR BAZAAR HYPERMARKET": [
+    "STAR BAZAAR",
+    "STARBAZAAR",
+    "TATA STAR BAZAAR",
+  ],
   "TATA STAR MARKET": ["STAR MARKET", "TATA STAR"],
   "RELIANCE SMART BAZAAR": ["SMART BAZAAR", "RELIANCE SMARTBAZAAR"],
   "RELIANCE SMART": ["RELIANCE SMART STORE"],
@@ -98,14 +127,13 @@ const ALIASES: Record<string, string[]> = {
   "RELIANCE TRENDS": ["RELIANCE TREND"],
   "V-MART": ["VMART", "V MART", "V-MART RETAIL"],
   "V-BAZAAR": ["V BAZAAR", "VBAZAAR"],
-  "V2": ["V2 RETAIL", "V 2"],
-  "CITY KART": ["CITYKART", "CITY CART", "CITYKART FASHION"],
-  "CITI STYLE": ["CITISTYLE", "CITY STYLE"],
+  "V2": ["V2 RETAIL", "V 2 RETAIL"],
+  "CITY KART": ["CITYKART", "CITY KART FASHION", "CITYKART FASHION"],
+  "CITI STYLE": ["CITISTYLE"],
   "SHOPPERS STOP": ["SHOPPERSSTOP", "SHOPPER STOP"],
   "FAB INDIA": ["FABINDIA"],
   "MR. DIY": ["MR DIY", "MRDIY"],
-  "DYI": ["DIY STORE"],
-  "LULU HYPERMARKET": ["LULU HYPER", "LU LU HYPERMARKET", "LULU MALL"],
+  "LULU HYPERMARKET": ["LULU HYPER", "LU LU HYPERMARKET"],
   "LULU WHOLESALE MART": ["LULU WHOLESALE"],
   "METRO WHOLESALE": ["METRO CASH", "METRO AG", "METRO WHOLESALE INDIA"],
   "BLINKIT": ["GROFERS"],
@@ -114,9 +142,21 @@ const ALIASES: Record<string, string[]> = {
   "PANTALOONS": ["PANTALOON"],
   "CARREFOUR": ["CARREFOUR MARKET", "CARREFOUR HYPERMARKET", "CARREFOUR INDIA"],
   "BRAND FACTORY": ["BRANDFACTORY"],
-  "WESTSIDE": ["WEST SIDE"],
-  "LIFESTYLE": ["LIFESTYLE STORES", "LANDMARK LIFESTYLE"],
+  "WESTSIDE": ["WEST SIDE", "WESTSIDE TATA"],
+  // Landmark Group Lifestyle — prefer Landmark phrasing; bare "Lifestyle…"
+  // only when it is the FIRST word (rejects "Healthy Lifestyle Spa" etc.)
+  "LIFESTYLE": [
+    "LANDMARK LIFESTYLE",
+    "LIFESTYLE BY LANDMARK",
+    "LANDMARK GROUP LIFESTYLE",
+    "LIFESTYLE STORES",
+    "LIFESTYLE STORE",
+  ],
 };
+
+/** Reject non-retail noise when a generic brand word leads the place name. */
+const NON_RETAIL_NOISE =
+  /\b(SPA|SALON|GYM|YOGA|FITNESS|CLINIC|CAFE|COFFEE|RESTAURANT|HOTEL|PG|HOSTEL|COACH|CONSULT|THERAPY|WELLNESS|BEAUTY|PARLOUR|PARLOR)\b/;
 
 function normalize(value: string): string {
   return value
@@ -134,7 +174,38 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function needleHits(hayRaw: string, needleRaw: string): boolean {
+/** True when brand phrase is the leading tokens of the place name. */
+function anchoredLeading(hayRaw: string, needleRaw: string): boolean {
+  const hay = normalize(hayRaw);
+  const needle = normalize(needleRaw);
+  if (!hay || !needle) return false;
+  return hay === needle || hay.startsWith(`${needle} `);
+}
+
+/** Strict hit: whole phrase as words / compact equality — no loose substring. */
+function strictNeedleHits(hayRaw: string, needleRaw: string): boolean {
+  const hay = normalize(hayRaw);
+  const needle = normalize(needleRaw);
+  if (!hay || !needle) return false;
+  const hayC = compact(hayRaw);
+  const needleC = compact(needleRaw);
+  const word = new RegExp(`(^|\\s)${escapeRegExp(needle)}(\\s|$)`);
+
+  if (needleC.length <= 3) {
+    return word.test(hay) || hayC === needleC;
+  }
+
+  return (
+    hay === needle ||
+    hay.startsWith(`${needle} `) ||
+    hay.includes(` ${needle} `) ||
+    hay.endsWith(` ${needle}`) ||
+    hayC === needleC ||
+    hayC.startsWith(needleC)
+  );
+}
+
+function looseNeedleHits(hayRaw: string, needleRaw: string): boolean {
   const hay = normalize(hayRaw);
   const needle = normalize(needleRaw);
   if (!hay || !needle) return false;
@@ -143,16 +214,11 @@ function needleHits(hayRaw: string, needleRaw: string): boolean {
   const needleC = compact(needleRaw);
   const word = new RegExp(`(^|\\s)${escapeRegExp(needle)}(\\s|$)`);
 
-  // Short codes (V2) — word-boundary only
   if (needleC.length <= 2) {
     return word.test(hay);
   }
-
-  // Short tokens (MAX, SPAR) — word boundary or exact compact equality / prefix + break
   if (needleC.length <= 3) {
-    if (word.test(hay) || hayC === needleC) return true;
-    // "MAXFASHION".startsWith("MAX") — allow only if next chars continue as separate known alias via longer needles
-    return false;
+    return word.test(hay) || hayC === needleC;
   }
 
   return (
@@ -173,17 +239,62 @@ export interface PriorityMatch {
 }
 
 export function matchPriorityBrand(placeName: string): PriorityMatch | null {
-  const hay = normalize(placeName);
-  if (!hay) return null;
+  if (!placeName?.trim()) return null;
+  if (NON_RETAIL_NOISE.test(normalize(placeName))) {
+    // Still allow if Landmark Lifestyle / known chain phrasing is explicit
+    if (!/LANDMARK|PANTALOONS|ZUDIO|DMART|D MART|RELIANCE|WESTSIDE|CARREFOUR/i.test(placeName)) {
+      // fall through with extra caution for strict brands only via aliases below
+    }
+  }
 
   let best: PriorityMatch | null = null;
 
   PRIORITY_COMPETITORS.forEach((brand, index) => {
     const aliases = ALIASES[brand] ?? [];
+    const strict = STRICT_BRANDS.has(brand);
+
+    if (strict) {
+      // Strict brands: aliases OR leading-token match on the brand itself
+      // (e.g. "Lifestyle - Select Citywalk" → Landmark Lifestyle)
+      const needles = [...aliases];
+      let hit = false;
+      let score = 0;
+
+      for (const needle of needles) {
+        if (!strictNeedleHits(placeName, needle)) continue;
+        hit = true;
+        score = Math.max(score, compact(needle).length);
+      }
+
+      // Leading "Lifestyle …" / "City Kart …" / "Max …" only if not spa/gym noise
+      if (
+        !hit &&
+        anchoredLeading(placeName, brand) &&
+        !NON_RETAIL_NOISE.test(normalize(placeName))
+      ) {
+        // Extra guard: CITY KART / CITI STYLE / LIFESTYLE must lead the name
+        hit = true;
+        score = compact(brand).length;
+      }
+
+      // MAX alone is too weak unless leading and not "Maxima" etc. — already anchored
+      if (hit) {
+        if (
+          !best ||
+          score > best.score ||
+          (score === best.score && index < best.priorityIndex)
+        ) {
+          best = { brand, priorityIndex: index, score };
+        }
+      }
+      return;
+    }
+
     const needles = [brand, ...aliases];
+    const hitFn = looseNeedleHits;
 
     for (const needle of needles) {
-      if (!needleHits(placeName, needle)) continue;
+      if (!hitFn(placeName, needle)) continue;
       const score = compact(needle).length;
       if (
         !best ||
@@ -203,8 +314,7 @@ export function isPriorityCompetitor(placeName: string): boolean {
 }
 
 /**
- * Compact Google keyword set — one call per family brand (fast).
- * Client maps hits like "Reliance Smart Bazaar" onto the priority allowlist.
+ * Compact Google keyword set — prefer official chain phrases for ambiguous brands.
  */
 export function getPlacesSearchKeywords(): string[] {
   return [
@@ -214,26 +324,29 @@ export function getPlacesSearchKeywords(): string[] {
     "City Kart",
     "Citi Style",
     "D-Mart",
-    "Reliance",
+    "Reliance Smart",
+    "Reliance Fresh",
+    "Reliance Trends",
+    "Reliance Digital",
+    "Smart Bazaar",
     "Pantaloons",
     "Westside",
-    "Lifestyle",
+    "Lifestyle Stores",
+    "Landmark Lifestyle",
     "Max Fashion",
     "More Mega",
-    "Spencer",
-    "Spar",
+    "Spencer Retail",
+    "Spar Hypermarket",
     "Brand Factory",
     "Shoppers Stop",
     "Carrefour",
-    "Lulu",
-    "Metro Cash",
+    "Lulu Hypermarket",
+    "Metro Cash and Carry",
     "Blinkit",
     "Yousta",
-    "Unlimited",
-    "Smart Bazaar",
+    "Unlimited Fashion",
     "Star Bazaar",
     "Fabindia",
     "Easybuy",
-    "Trends",
   ];
 }

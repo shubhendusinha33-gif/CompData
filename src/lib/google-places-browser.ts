@@ -234,10 +234,12 @@ export async function fetchBrowserGoogleCompetitors(
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 40);
 
-    // Build rows from Nearby results only (skip Place Details — major speedup)
-    return priorityHits.map(({ place, dist, plat, plng }, index) => {
+    // Dedupe to nearest per priority brand before return (safety net)
+    const nearestByBrand = new Map<string, Competitor>();
+    for (const row of priorityHits.map(({ place, dist, plat, plng }, index) => {
       const name = place.name ?? `Competitor ${index + 1}`;
       const match = matchPriorityBrand(name);
+      if (!match) return null;
       const types = place.types ?? [];
       const category =
         mapTypesToCategory(types) === "Other"
@@ -247,7 +249,7 @@ export async function fetchBrowserGoogleCompetitors(
       const competitor: Competitor = {
         id: place.place_id || `g-browser-${index}`,
         name,
-        brand: match?.brand ?? name.split(/[,|-]/)[0].trim(),
+        brand: match.brand,
         category,
         distanceKm: Math.round(dist * 10) / 10,
         rating: place.rating ?? null,
@@ -266,7 +268,17 @@ export async function fetchBrowserGoogleCompetitors(
         mapsUrl: `https://www.google.com/maps/search/?api=1&query=${plat},${plng}`,
       };
       return competitor;
-    });
+    })) {
+      if (!row) continue;
+      const prev = nearestByBrand.get(row.brand);
+      if (!prev || row.distanceKm < prev.distanceKm) {
+        nearestByBrand.set(row.brand, row);
+      }
+    }
+
+    return [...nearestByBrand.values()].sort(
+      (a, b) => a.distanceKm - b.distanceKm
+    );
   } finally {
     cleanup();
   }

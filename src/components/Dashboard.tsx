@@ -57,7 +57,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [resolvingName, setResolvingName] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
   const analysisRef = useRef<HTMLDivElement>(null);
   const bootstrapped = useRef(false);
   const searchAbort = useRef<AbortController | null>(null);
@@ -135,7 +134,6 @@ export default function Dashboard() {
       radius: "5",
     };
     setForm(initial);
-    if (savedKey) setShowApiKey(true);
 
     void (async () => {
       try {
@@ -155,7 +153,6 @@ export default function Dashboard() {
   }, []);
 
   // Auto-resolve only on Auto button / first load — not on every lat/lng keystroke
-  // (was re-querying Google on each coordinate change and felt like scanning hung)
 
   const scrollToAnalysis = () => {
     analysisRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -182,9 +179,32 @@ export default function Dashboard() {
             Analysis
           </a>
         </nav>
+
+        <div className="sidebar-api">
+          <p className="sidebar-api-label">Google Maps API key</p>
+          <input
+            type="password"
+            autoComplete="new-password"
+            name="google-maps-api-key"
+            spellCheck={false}
+            value={form.apiKey}
+            onChange={(e) => {
+              const apiKey = e.target.value;
+              setForm((prev) => ({ ...prev, apiKey }));
+              setStoredApiKey(apiKey);
+            }}
+            placeholder="••••••••••••••••"
+            aria-label="Google Maps API key (masked)"
+          />
+          <p className="sidebar-api-help">
+            Maps JavaScript API + Places API. Stored in this browser only.
+          </p>
+        </div>
+
         <p className="sidebar-note">
-          Priority organized retailers only. Local mom-and-pop outlets are
-          excluded.
+          Priority organized retailers only — one nearest store per brand.
+          Generic names like local “Lifestyle” shops are excluded (Landmark
+          Lifestyle only).
         </p>
       </aside>
 
@@ -215,7 +235,7 @@ export default function Dashboard() {
             <header className="panel-head">
               <h2>Store query</h2>
               <span className="muted small">
-                Enter radius (km) · priority comps only · fast brand scan
+                Enter radius (km) · priority brands · nearest per brand
               </span>
             </header>
             <StoreSearchForm
@@ -227,8 +247,6 @@ export default function Dashboard() {
               loading={loading}
               resolvingName={resolvingName}
               hasResults={competitors.length > 0}
-              showApiKey={showApiKey}
-              onToggleApiKey={() => setShowApiKey((v) => !v)}
             />
             {(message || error) && (
               <div className={`banner ${error ? "error" : "info"}`}>
