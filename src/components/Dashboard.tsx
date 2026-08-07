@@ -154,34 +154,8 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-resolve exact VMM Google place name when lat/lng change (debounced)
-  useEffect(() => {
-    if (!bootstrapped.current) return;
-    const lat = Number(form.lat);
-    const lng = Number(form.lng);
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-
-    const handle = window.setTimeout(() => {
-      void (async () => {
-        try {
-          setResolvingName(true);
-          const { storeName } = await resolveStoreName(lat, lng, form.apiKey);
-          setForm((prev) =>
-            prev.lat === String(lat) && prev.lng === String(lng)
-              ? { ...prev, name: storeName }
-              : prev
-          );
-        } catch {
-          // ignore transient geocode errors
-        } finally {
-          setResolvingName(false);
-        }
-      })();
-    }, 700);
-
-    return () => window.clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.lat, form.lng, form.apiKey]);
+  // Auto-resolve only on Auto button / first load — not on every lat/lng keystroke
+  // (was re-querying Google on each coordinate change and felt like scanning hung)
 
   const scrollToAnalysis = () => {
     analysisRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -241,7 +215,7 @@ export default function Dashboard() {
             <header className="panel-head">
               <h2>Store query</h2>
               <span className="muted small">
-                Radius presets 5 / 10 km · priority comps only
+                Enter radius (km) · priority comps only · fast brand scan
               </span>
             </header>
             <StoreSearchForm

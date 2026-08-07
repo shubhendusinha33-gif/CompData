@@ -203,70 +203,37 @@ export function isPriorityCompetitor(placeName: string): boolean {
 }
 
 /**
- * Keywords sent to Google Places nearby/text search.
- * Family brands (Reliance) searched once; client maps to specific banners.
+ * Compact Google keyword set — one call per family brand (fast).
+ * Client maps hits like "Reliance Smart Bazaar" onto the priority allowlist.
  */
 export function getPlacesSearchKeywords(): string[] {
-  const seeds = [
+  return [
     "Zudio",
     "V-Mart",
     "V2 Retail",
     "City Kart",
     "Citi Style",
     "D-Mart",
-    "DMart",
-    "Reliance Smart",
-    "Reliance Fresh",
-    "Reliance Trends",
-    "Reliance Digital",
-    "Reliance Market",
-    "Smart Bazaar",
+    "Reliance",
     "Pantaloons",
     "Westside",
     "Lifestyle",
     "Max Fashion",
     "More Mega",
-    "More Supermarket",
     "Spencer",
     "Spar",
     "Brand Factory",
     "Shoppers Stop",
     "Carrefour",
-    "Lulu Hypermarket",
-    "Metro Wholesale",
+    "Lulu",
+    "Metro Cash",
     "Blinkit",
     "Yousta",
     "Unlimited",
-    "Easybuy",
+    "Smart Bazaar",
     "Star Bazaar",
     "Fabindia",
-    "Snitch",
-    "Nesto",
-    "Fashion City",
-    "Bazaar Kolkata",
-    "Bazar India",
-    "Cosmo Bazaar",
-    "M Bazaar",
-    "Style Bazaar",
-    "Style Union",
-    "Style Up",
-    "V-Bazaar",
-    "National Mart",
-    "Express Bazaar",
-    "KPN Supermarket",
-    "Big Day Hypermarket",
-    "Big Mart",
-    "Rolla Hypermarket",
-    "Ratnadeep",
-    "Sunsar",
-    "Grand Mart",
-    "Reliance Fashion",
-    "Mr DIY",
-    "One India Fashion",
-    "LimeRoad",
+    "Easybuy",
+    "Trends",
   ];
-
-  // Also include every priority brand name as a keyword
-  const all = new Set<string>([...seeds, ...PRIORITY_COMPETITORS]);
-  return [...all];
 }

@@ -22,23 +22,6 @@ interface GoogleNearbyResult {
   business_status?: string;
 }
 
-interface GooglePlaceDetails {
-  result?: {
-    name?: string;
-    formatted_address?: string;
-    formatted_phone_number?: string;
-    international_phone_number?: string;
-    website?: string;
-    rating?: number;
-    user_ratings_total?: number;
-    types?: string[];
-    url?: string;
-    business_status?: string;
-    geometry?: { location: { lat: number; lng: number } };
-  };
-  status: string;
-}
-
 async function nearbySearch(
   lat: number,
   lng: number,
@@ -68,27 +51,6 @@ async function nearbySearch(
   return data.results ?? [];
 }
 
-async function placeDetails(
-  placeId: string,
-  apiKey: string
-): Promise<GooglePlaceDetails["result"] | null> {
-  const url = new URL(
-    "https://maps.googleapis.com/maps/api/place/details/json"
-  );
-  url.searchParams.set("place_id", placeId);
-  url.searchParams.set(
-    "fields",
-    "name,formatted_address,formatted_phone_number,international_phone_number,website,rating,user_ratings_total,types,url,business_status,geometry"
-  );
-  url.searchParams.set("key", apiKey);
-
-  const res = await fetch(url.toString(), { next: { revalidate: 0 } });
-  if (!res.ok) return null;
-  const data = (await res.json()) as GooglePlaceDetails;
-  if (data.status !== "OK") return null;
-  return data.result ?? null;
-}
-
 export async function fetchGoogleCompetitors(
   lat: number,
   lng: number,
@@ -96,6 +58,7 @@ export async function fetchGoogleCompetitors(
   apiKey: string
 ): Promise<Competitor[]> {
   const radiusM = Math.min(Math.round(radiusKm * 1000), 50000);
+  const keywords = getPlacesSearchKeywords();
   const byId = new Map<string, GoogleNearbyResult>();
 
   const add = (batch: GoogleNearbyResult[]) => {
@@ -105,26 +68,14 @@ export async function fetchGoogleCompetitors(
     }
   };
 
-  const keywords = getPlacesSearchKeywords();
-  const batchSize = 8;
-  for (let i = 0; i < keywords.length; i += batchSize) {
-    const chunk = keywords.slice(i, i + batchSize);
-    const batches = await Promise.all(
-      chunk.map((keyword) =>
-        nearbySearch(lat, lng, radiusM, apiKey, { keyword })
-      )
-    );
-    batches.forEach(add);
-  }
-
-  const typeBatches = await Promise.all(
-    ["department_store", "supermarket", "clothing_store", "shopping_mall"].map(
-      (type) => nearbySearch(lat, lng, radiusM, apiKey, { type })
+  const batches = await Promise.all(
+    keywords.map((keyword) =>
+      nearbySearch(lat, lng, radiusM, apiKey, { keyword })
     )
   );
-  typeBatches.forEach(add);
+  batches.forEach(add);
 
-  const nearby = [...byId.values()]
+  return [...byId.values()]
     .filter((p) => isPriorityCompetitor(p.name))
     .map((p) => ({
       ...p,
@@ -137,21 +88,17 @@ export async function fetchGoogleCompetitors(
     }))
     .filter((p) => p.dist <= radiusKm + 0.05)
     .sort((a, b) => a.dist - b.dist)
-    .slice(0, 40);
-
-  const detailed = await Promise.all(
-    nearby.map(async (place, index) => {
-      const details = await placeDetails(place.place_id, apiKey);
-      const types = details?.types ?? place.types ?? [];
-      const name = details?.name ?? place.name;
+    .slice(0, 40)
+    .map((place, index) => {
+      const name = place.name;
       const match = matchPriorityBrand(name);
+      const types = place.types ?? [];
       const category =
         mapTypesToCategory(types) === "Other"
           ? inferCategoryFromName(name)
           : mapTypesToCategory(types);
-
-      const plat = details?.geometry?.location.lat ?? place.geometry.location.lat;
-      const plng = details?.geometry?.location.lng ?? place.geometry.location.lng;
+      const plat = place.geometry.location.lat;
+      const plng = place.geometry.location.lng;
 
       const competitor: Competitor = {
         id: place.place_id || `g-${index}`,
@@ -159,30 +106,19 @@ export async function fetchGoogleCompetitors(
         brand: match?.brand ?? name.split(/[,|-]/)[0].trim(),
         category,
         distanceKm: Math.round(place.dist * 10) / 10,
-        rating: details?.rating ?? place.rating ?? null,
-        ratingCount:
-          details?.user_ratings_total ?? place.user_ratings_total ?? null,
+        rating: place.rating ?? null,
+        ratingCount: place.user_ratings_total ?? null,
         openedOn: null,
-        address:
-          details?.formatted_address ?? place.vicinity ?? "Address unavailable",
-        phone:
-          details?.formatted_phone_number ??
-          details?.international_phone_number ??
-          null,
+        address: place.vicinity ?? "Address unavailable",
+        phone: null,
         sizeSqFt: null,
         lat: plat,
         lng: plng,
         placeId: place.place_id,
-        website: details?.website ?? null,
-        businessStatus:
-          details?.business_status ?? place.business_status ?? null,
-        mapsUrl:
-          details?.url ??
-          `https://www.google.com/maps/search/?api=1&query=${plat},${plng}`,
+        website: null,
+        businessStatus: place.business_status ?? null,
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${plat},${plng}`,
       };
       return competitor;
-    })
-  );
-
-  return detailed;
+    });
 }
