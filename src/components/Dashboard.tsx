@@ -10,6 +10,10 @@ import TopCompetitorsPanel from "@/components/TopCompetitorsPanel";
 import FullCompetitionTable from "@/components/FullCompetitionTable";
 import StatsRow from "@/components/StatsRow";
 import { DEFAULT_STORE } from "@/data/demo-competitors";
+import {
+  getStoredApiKey,
+  setStoredApiKey,
+} from "@/lib/google-places-browser";
 import { searchCompetitors } from "@/lib/search-competitors";
 import type { Competitor, StoreLocation } from "@/types/competitor";
 
@@ -28,6 +32,7 @@ export default function Dashboard() {
     lat: String(DEFAULT_STORE.lat),
     lng: String(DEFAULT_STORE.lng),
     radius: String(DEFAULT_STORE.radiusKm),
+    apiKey: "",
   });
   const [store, setStore] = useState<StoreLocation>(DEFAULT_STORE);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -41,12 +46,14 @@ export default function Dashboard() {
   const runSearch = useCallback(async (values: SearchFormValues) => {
     setLoading(true);
     setError(null);
+    setStoredApiKey(values.apiKey);
     try {
       const data = await searchCompetitors({
         name: values.name,
         lat: Number(values.lat),
         lng: Number(values.lng),
         radiusKm: Number(values.radius),
+        apiKey: values.apiKey,
       });
       setStore(data.store);
       setCompetitors(data.competitors);
@@ -62,7 +69,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (bootstrapped.current) return;
     bootstrapped.current = true;
-    void runSearch(form);
+    const savedKey = getStoredApiKey();
+    const initial = { ...form, apiKey: savedKey };
+    setForm(initial);
+    void runSearch(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -141,9 +151,10 @@ export default function Dashboard() {
 
       <footer className="dash-footer">
         <p>
-          Live mode uses Google Places Nearby Search + Place Details. Store open
-          dates and floor area are not published by Google — demo data includes
-          illustrative values for those fields.
+          Paste a Google Maps API key in the form to pull live competitors in
+          the browser (GitHub Pages supported). Store open dates and floor area
+          are not published by Google — demo data includes illustrative values
+          for those fields.
         </p>
       </footer>
     </div>

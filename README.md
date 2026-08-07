@@ -2,16 +2,25 @@
 
 Beautiful dashboard for **Vishal Mega Mart** store teams: enter a store’s coordinates and pull nearby retail competitors with Google rating, distance, category, open date, address, phone, and size.
 
+## Use in the browser (no install)
+
+**Live web app:** [https://shubhendusinha33-gif.github.io/CompData/](https://shubhendusinha33-gif.github.io/CompData/)
+
+Open that link on any phone or laptop — nothing to install.
+
+- Without a key → **demo** sample rivals
+- Paste a **Google Maps API key** in the form (Maps JavaScript API + Places API) → **live** competitors around your coordinates. The key stays in your browser.
+
 ## Features
 
 - Coordinate + radius search for any VMM location
 - Interactive catchment map (Leaflet / OSM)
 - **Top competitors** summary panel (brand · category · distance)
 - Full competition table: rating, distance, category, opened on, address & contact, size
-- **Live mode** via Google Places Nearby Search + Place Details
-- **Demo mode** with sample Indian retail rivals when no API key is set
+- **Live mode** via Google Places Nearby Search + Place Details (optional Node host + API key)
+- **Demo mode** with sample Indian retail rivals (used on GitHub Pages)
 
-## Quick start
+## Quick start (optional, for developers)
 
 ```bash
 npm install
@@ -21,6 +30,15 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 Without an API key the app loads demo competitors around a sample Noida store.
+
+### Static site for GitHub Pages
+
+```bash
+npm run build:pages
+```
+
+Output is written to `out/` (and published from `docs/` / GitHub Actions).
+
 
 ## Google Maps API (live data)
 

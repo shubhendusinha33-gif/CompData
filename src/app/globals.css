@@ -214,6 +214,27 @@ h2,
   box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.12);
 }
 
+.key-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.key-hint code {
+  font-size: 0.74rem;
+  background: #eef3f6;
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  color: var(--ink-soft);
+}
+
+.inline-key {
+  display: inline;
+  vertical-align: -1px;
+  margin-right: 0.2rem;
+}
+
 .form-actions {
   display: flex;
   flex-wrap: wrap;

@@ -1,4 +1,8 @@
 import { buildDemoCompetitors, DEFAULT_STORE } from "@/data/demo-competitors";
+import {
+  fetchBrowserGoogleCompetitors,
+  getStoredApiKey,
+} from "@/lib/google-places-browser";
 import { sortByDistance } from "@/lib/geo";
 import type { CompetitorSearchResponse } from "@/types/competitor";
 
@@ -7,13 +11,15 @@ export interface SearchInput {
   lat: number;
   lng: number;
   radiusKm: number;
+  /** Optional override; otherwise uses localStorage / NEXT_PUBLIC key */
+  apiKey?: string;
 }
 
 /**
- * Browser-safe competitor search.
- * Uses the built-in demo dataset (works on GitHub Pages with zero install).
- * When a same-origin /api/competitors endpoint exists (local/Vercel + API key),
- * prefers that for live Google Places results.
+ * Browser-safe competitor search priority:
+ * 1) Google Places via Maps JS (works on GitHub Pages with an API key)
+ * 2) Same-origin /api/competitors (Node / Vercel host)
+ * 3) Built-in demo dataset
  */
 export async function searchCompetitors(
   input: SearchInput
@@ -39,7 +45,34 @@ export async function searchCompetitors(
     throw new Error("Radius must be between 0 and 50 km");
   }
 
-  // Try live API when hosted on Node (dev server / Vercel). Skip on static hosts.
+  const apiKey = (input.apiKey ?? getStoredApiKey()).trim();
+
+  if (apiKey && typeof window !== "undefined") {
+    try {
+      const competitors = sortByDistance(
+        await fetchBrowserGoogleCompetitors(
+          store.lat,
+          store.lng,
+          store.radiusKm,
+          apiKey
+        )
+      );
+      return {
+        store,
+        competitors,
+        source: "google",
+        message:
+          competitors.length === 0
+            ? "No retail competitors found in this radius. Try a larger radius or different coordinates."
+            : "Live Google Places data. Opened-on and size are not provided by Google.",
+      };
+    } catch (err) {
+      console.warn("Browser Google Places failed:", err);
+      // Continue to server API / demo
+    }
+  }
+
+  // Try live API when hosted on Node (dev server / Vercel).
   if (typeof window !== "undefined") {
     try {
       const params = new URLSearchParams({
@@ -59,7 +92,7 @@ export async function searchCompetitors(
         }
       }
     } catch {
-      // Fall through to demo — expected on GitHub Pages static hosting
+      // Fall through to demo — expected on GitHub Pages without a key
     }
   }
 
@@ -69,7 +102,8 @@ export async function searchCompetitors(
       buildDemoCompetitors(store.lat, store.lng, store.radiusKm)
     ),
     source: "demo",
-    message:
-      "Web demo mode — sample Indian retail rivals around your coordinates. Add GOOGLE_MAPS_API_KEY on a Node host for live Google Places data.",
+    message: apiKey
+      ? "Google Places request failed — showing sample competitors. Check the API key (enable Maps JavaScript API + Places API, allow your site referrer)."
+      : "Demo mode — sample rivals for layout/testing. Paste a Google Maps API key above and click Find competitors for live data (no install needed).",
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, LocateFixed } from "lucide-react";
+import { Search, LocateFixed, KeyRound } from "lucide-react";
 import { DEFAULT_STORE } from "@/data/demo-competitors";
 
 export interface SearchFormValues {
@@ -8,6 +8,7 @@ export interface SearchFormValues {
   lat: string;
   lng: string;
   radius: string;
+  apiKey: string;
 }
 
 export default function StoreSearchForm({
@@ -70,13 +71,34 @@ export default function StoreSearchForm({
             required
           />
         </label>
+        <label className="field field-wide">
+          <span>
+            <KeyRound size={12} className="inline-key" /> Google Maps API key
+            (optional — for live data)
+          </span>
+          <input
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            value={values.apiKey}
+            onChange={(e) => onChange({ ...values, apiKey: e.target.value })}
+            placeholder="Paste key to switch from demo → live Places"
+          />
+        </label>
       </div>
+      <p className="key-hint">
+        Create a key in Google Cloud with <strong>Maps JavaScript API</strong> +{" "}
+        <strong>Places API</strong>. Restrict by HTTP referrer to{" "}
+        <code>https://shubhendusinha33-gif.github.io/*</code>. Key stays in this
+        browser only.
+      </p>
       <div className="form-actions">
         <button
           type="button"
           className="btn-ghost"
           onClick={() =>
             onChange({
+              ...values,
               name: DEFAULT_STORE.name,
               lat: String(DEFAULT_STORE.lat),
               lng: String(DEFAULT_STORE.lng),
