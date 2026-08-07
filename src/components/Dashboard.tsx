@@ -57,9 +57,44 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [resolvingName, setResolvingName] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeNav, setActiveNav] = useState<"search" | "bulk" | "review">(
+    "search"
+  );
+  const [apiEditorOpen, setApiEditorOpen] = useState(false);
+  const [apiDraft, setApiDraft] = useState("");
   const analysisRef = useRef<HTMLDivElement>(null);
   const bootstrapped = useRef(false);
   const searchAbort = useRef<AbortController | null>(null);
+
+  const hasApiKey = Boolean(form.apiKey.trim());
+
+  const saveApiKey = () => {
+    const key = apiDraft.trim();
+    setForm((prev) => ({ ...prev, apiKey: key }));
+    setStoredApiKey(key);
+    setApiDraft("");
+    setApiEditorOpen(false);
+  };
+
+  const clearApiKey = () => {
+    setForm((prev) => ({ ...prev, apiKey: "" }));
+    setStoredApiKey("");
+    setApiDraft("");
+    setApiEditorOpen(false);
+  };
+
+  const goToSection = (
+    id: "search" | "bulk" | "review",
+    el?: HTMLElement | null
+  ) => {
+    setActiveNav(id);
+    const target =
+      el ??
+      (id === "review"
+        ? analysisRef.current
+        : document.getElementById(id));
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const runSearch = useCallback(async (values: SearchFormValues) => {
     searchAbort.current?.abort();
@@ -155,7 +190,7 @@ export default function Dashboard() {
   // Auto-resolve only on Auto button / first load — not on every lat/lng keystroke
 
   const scrollToAnalysis = () => {
-    analysisRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    goToSection("review", analysisRef.current);
   };
 
   return (
@@ -169,35 +204,97 @@ export default function Dashboard() {
           </div>
         </div>
         <nav className="sidebar-nav">
-          <a href="#search" className="nav-item active">
+          <button
+            type="button"
+            className={`nav-item ${activeNav === "search" ? "active" : ""}`}
+            onClick={() => goToSection("search")}
+          >
             Single store
-          </a>
-          <a href="#bulk" className="nav-item">
+          </button>
+          <button
+            type="button"
+            className={`nav-item ${activeNav === "bulk" ? "active" : ""}`}
+            onClick={() => goToSection("bulk")}
+          >
             Bulk upload
-          </a>
-          <a href="#full-analysis" className="nav-item">
-            Analysis
-          </a>
+          </button>
+          <button
+            type="button"
+            className={`nav-item ${activeNav === "review" ? "active" : ""}`}
+            onClick={() => goToSection("review", analysisRef.current)}
+          >
+            Review
+          </button>
         </nav>
 
         <div className="sidebar-api">
           <p className="sidebar-api-label">Google Maps API key</p>
-          <input
-            type="password"
-            autoComplete="new-password"
-            name="google-maps-api-key"
-            spellCheck={false}
-            value={form.apiKey}
-            onChange={(e) => {
-              const apiKey = e.target.value;
-              setForm((prev) => ({ ...prev, apiKey }));
-              setStoredApiKey(apiKey);
-            }}
-            placeholder="••••••••••••••••"
-            aria-label="Google Maps API key (masked)"
-          />
+          {!apiEditorOpen ? (
+            <>
+              <p className="sidebar-api-status">
+                {hasApiKey ? "Key saved — hidden" : "No key saved"}
+              </p>
+              <div className="sidebar-api-actions">
+                <button
+                  type="button"
+                  className="btn-sidebar"
+                  onClick={() => {
+                    setApiDraft("");
+                    setApiEditorOpen(true);
+                  }}
+                >
+                  {hasApiKey ? "Change key" : "Add key"}
+                </button>
+                {hasApiKey && (
+                  <button
+                    type="button"
+                    className="btn-sidebar danger"
+                    onClick={clearApiKey}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <input
+                type="password"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                name="compdata-api-key-draft"
+                value={apiDraft}
+                onChange={(e) => setApiDraft(e.target.value)}
+                placeholder="Paste new key"
+                aria-label="Enter Google Maps API key"
+              />
+              <div className="sidebar-api-actions">
+                <button
+                  type="button"
+                  className="btn-sidebar primary"
+                  onClick={saveApiKey}
+                  disabled={!apiDraft.trim()}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="btn-sidebar"
+                  onClick={() => {
+                    setApiDraft("");
+                    setApiEditorOpen(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
           <p className="sidebar-api-help">
-            Maps JavaScript API + Places API. Stored in this browser only.
+            Key is never shown after save. Needs Maps JavaScript API + Places
+            API.
           </p>
         </div>
 
@@ -289,7 +386,7 @@ export default function Dashboard() {
             />
           </div>
 
-          <div ref={analysisRef}>
+          <div id="review" ref={analysisRef}>
             <FullCompetitionTable competitors={competitors} />
           </div>
 

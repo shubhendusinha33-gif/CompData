@@ -119,6 +119,11 @@ code {
   padding: 0.55rem 0.7rem;
   border-radius: 6px;
   border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .nav-item:hover,
@@ -171,6 +176,51 @@ code {
 
 .sidebar-api input::placeholder {
   color: #6f8294;
+}
+
+.sidebar-api-status {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #d7e2ec;
+}
+
+.sidebar-api-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.btn-sidebar {
+  height: 32px;
+  padding: 0 0.7rem;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8eef4;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-sidebar:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-sidebar.primary {
+  background: #9e1b32;
+  border-color: #9e1b32;
+}
+
+.btn-sidebar.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-sidebar.danger {
+  color: #f0b4be;
+  border-color: rgba(240, 180, 190, 0.35);
 }
 
 .sidebar-api-help {
@@ -270,6 +320,13 @@ code {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+#search,
+#bulk,
+#review,
+#full-analysis {
+  scroll-margin-top: 5rem;
 }
 
 .panel {

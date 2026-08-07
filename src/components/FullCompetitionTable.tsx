@@ -40,7 +40,7 @@ export default function FullCompetitionTable({
     <section id="full-analysis" className="panel full-analysis">
       <header className="panel-head">
         <div>
-          <h2>Full competition analysis</h2>
+          <h2>Review — full competition analysis</h2>
           <p className="panel-sub">
             One nearest store per priority brand — Landmark Lifestyle only (not
             generic “Lifestyle” shops)
