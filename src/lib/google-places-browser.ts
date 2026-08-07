@@ -78,16 +78,6 @@ function loadMaps(apiKey: string): Promise<typeof google.maps> {
   return window.__compdataMapsLoader;
 }
 
-function yieldToMain(): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof requestAnimationFrame === "function") {
-      requestAnimationFrame(() => resolve());
-    } else {
-      setTimeout(resolve, 0);
-    }
-  });
-}
-
 function nearbySearch(
   service: google.maps.places.PlacesService,
   request: google.maps.places.PlaceSearchRequest
@@ -124,40 +114,6 @@ function textSearch(
   });
 }
 
-function getDetails(
-  service: google.maps.places.PlacesService,
-  placeId: string
-): Promise<google.maps.places.PlaceResult | null> {
-  return new Promise((resolve) => {
-    service.getDetails(
-      {
-        placeId,
-        fields: [
-          "place_id",
-          "name",
-          "formatted_address",
-          "formatted_phone_number",
-          "international_phone_number",
-          "website",
-          "rating",
-          "user_ratings_total",
-          "types",
-          "url",
-          "business_status",
-          "geometry",
-        ],
-      },
-      (result, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && result) {
-          resolve(result);
-          return;
-        }
-        resolve(null);
-      }
-    );
-  });
-}
-
 function createService(maps: typeof google.maps) {
   const attribution = document.createElement("div");
   attribution.style.display = "none";
@@ -190,11 +146,11 @@ export async function resolveVmmStoreFromGoogle(
       textSearch(service, {
         query: "Vishal Mega Mart",
         location,
-        radius: 2500,
+        radius: 2000,
       }),
       nearbySearch(service, {
         location,
-        radius: 2500,
+        radius: 2000,
         keyword: "Vishal Mega Mart",
       }),
     ]);
@@ -227,7 +183,7 @@ export async function resolveVmmStoreFromGoogle(
   }
 }
 
-/** Live competitor pull — keyword search for priority brands (not type-only). */
+/** Live competitor pull — fast parallel keyword scan for priority families. */
 export async function fetchBrowserGoogleCompetitors(
   lat: number,
   lng: number,
@@ -252,38 +208,16 @@ export async function fetchBrowserGoogleCompetitors(
       }
     };
 
-    // 1) Keyword searches for priority brands (batched so UI stays responsive)
-    const batchSize = 6;
-    for (let i = 0; i < keywords.length; i += batchSize) {
-      const chunk = keywords.slice(i, i + batchSize);
-      const results = await Promise.all(
-        chunk.map((keyword) =>
-          nearbySearch(service, {
-            location,
-            radius: radiusM,
-            keyword,
-          })
-        )
-      );
-      results.forEach(addPlaces);
-      onProgress?.(Math.min(i + batchSize, keywords.length), keywords.length);
-      await yieldToMain();
-    }
-
-    // 2) Light type sweep as a backfill
-    const typeResults = await Promise.all(
-      (
-        [
-          "department_store",
-          "supermarket",
-          "clothing_store",
-          "shopping_mall",
-        ] as const
-      ).map((type) => nearbySearch(service, { location, radius: radiusM, type }))
+    // One parallel wave — ~25 keyword calls instead of 100+
+    onProgress?.(0, keywords.length);
+    const results = await Promise.all(
+      keywords.map((keyword) =>
+        nearbySearch(service, { location, radius: radiusM, keyword })
+      )
     );
-    typeResults.forEach(addPlaces);
+    results.forEach(addPlaces);
+    onProgress?.(keywords.length, keywords.length);
 
-    // Filter to priority brands BEFORE capping — previous bug sliced generic retail first
     const priorityHits = [...byId.values()]
       .filter((place) => place.name && isPriorityCompetitor(place.name))
       .map((place) => {
@@ -300,57 +234,39 @@ export async function fetchBrowserGoogleCompetitors(
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 40);
 
-    const detailed: Competitor[] = [];
-    for (let i = 0; i < priorityHits.length; i++) {
-      const { place, dist, plat, plng } = priorityHits[i];
-      const details = place.place_id
-        ? await getDetails(service, place.place_id)
-        : null;
-      const name = details?.name ?? place.name ?? `Competitor ${i + 1}`;
+    // Build rows from Nearby results only (skip Place Details — major speedup)
+    return priorityHits.map(({ place, dist, plat, plng }, index) => {
+      const name = place.name ?? `Competitor ${index + 1}`;
       const match = matchPriorityBrand(name);
-      const types = details?.types ?? place.types ?? [];
+      const types = place.types ?? [];
       const category =
         mapTypesToCategory(types) === "Other"
           ? inferCategoryFromName(name)
           : mapTypesToCategory(types);
-      const dlat = details?.geometry?.location?.lat() ?? plat;
-      const dlng = details?.geometry?.location?.lng() ?? plng;
 
-      detailed.push({
-        id: place.place_id || `g-browser-${i}`,
+      const competitor: Competitor = {
+        id: place.place_id || `g-browser-${index}`,
         name,
         brand: match?.brand ?? name.split(/[,|-]/)[0].trim(),
         category,
         distanceKm: Math.round(dist * 10) / 10,
-        rating: details?.rating ?? place.rating ?? null,
-        ratingCount:
-          details?.user_ratings_total ?? place.user_ratings_total ?? null,
+        rating: place.rating ?? null,
+        ratingCount: place.user_ratings_total ?? null,
         openedOn: null,
-        address:
-          details?.formatted_address ??
-          place.vicinity ??
-          "Address unavailable",
-        phone:
-          details?.formatted_phone_number ??
-          details?.international_phone_number ??
-          null,
+        address: place.vicinity ?? "Address unavailable",
+        phone: null,
         sizeSqFt: null,
-        lat: dlat,
-        lng: dlng,
+        lat: plat,
+        lng: plng,
         placeId: place.place_id,
-        website: details?.website ?? null,
-        businessStatus: details?.business_status
-          ? String(details.business_status)
+        website: null,
+        businessStatus: place.business_status
+          ? String(place.business_status)
           : null,
-        mapsUrl:
-          details?.url ??
-          `https://www.google.com/maps/search/?api=1&query=${dlat},${dlng}`,
-      });
-
-      if (i % 4 === 3) await yieldToMain();
-    }
-
-    return detailed;
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${plat},${plng}`,
+      };
+      return competitor;
+    });
   } finally {
     cleanup();
   }

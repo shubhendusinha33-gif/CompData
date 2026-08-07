@@ -99,20 +99,6 @@ export default function StoreSearchForm({
         </label>
       </div>
 
-      <div className="radius-presets" role="group" aria-label="Radius presets">
-        <span className="preset-label">Quick radius</span>
-        {[5, 10].map((km) => (
-          <button
-            key={km}
-            type="button"
-            className={`preset-chip ${Number(values.radius) === km ? "active" : ""}`}
-            onClick={() => onChange({ ...values, radius: String(km) })}
-          >
-            {km} km
-          </button>
-        ))}
-      </div>
-
       <div className="settings-row">
         <button type="button" className="link-quiet" onClick={onToggleApiKey}>
           {showApiKey ? "Hide API settings" : "API settings"}
