@@ -81,8 +81,8 @@ export async function searchCompetitors(
         source: "google",
         message:
           competitors.length === 0
-            ? "No priority organized retailers found in this radius."
-            : "Live Google Places — priority organized retailers only (mom-and-pop excluded).",
+            ? "No priority organized retailers found in this radius. Try 10 km."
+            : "Live Google Places — keyword scan for priority brands (Zudio, V-Mart, D-Mart, Reliance, Carrefour, …). Mom-and-pop excluded.",
       };
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") throw err;

@@ -137,6 +137,39 @@ const DEMO_OFFSETS: Omit<Competitor, "id" | "distanceKm" | "lat" | "lng">[] = [
     phone: "+91 1800 891 1000",
     sizeSqFt: 9000,
   },
+  {
+    name: "City Kart",
+    brand: "CITY KART",
+    category: "Fashion",
+    rating: 3.9,
+    ratingCount: 420,
+    openedOn: "Jan 2021",
+    address: "Main Market Complex",
+    phone: "+91 98100 11223",
+    sizeSqFt: 6500,
+  },
+  {
+    name: "V2 Retail",
+    brand: "V2",
+    category: "Fashion",
+    rating: 4.0,
+    ratingCount: 780,
+    openedOn: "Aug 2018",
+    address: "Ring Road Commercial Hub",
+    phone: "+91 98765 10011",
+    sizeSqFt: 11000,
+  },
+  {
+    name: "Carrefour",
+    brand: "CARREFOUR",
+    category: "Hypermarket",
+    rating: 4.1,
+    ratingCount: 1560,
+    openedOn: "Mar 2015",
+    address: "Hypercity Mall Anchor",
+    phone: "+91 124 400 2000",
+    sizeSqFt: 55000,
+  },
 ];
 
 const OFFSETS_KM: [number, number][] = [
@@ -152,6 +185,9 @@ const OFFSETS_KM: [number, number][] = [
   [-1.8, 1.2],
   [0.6, 2.4],
   [-2.2, -0.8],
+  [1.1, -2.0],
+  [-0.7, 2.6],
+  [2.4, 1.1],
 ];
 
 function offsetLatLng(

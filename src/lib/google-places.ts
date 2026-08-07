@@ -1,5 +1,10 @@
 import type { Competitor } from "@/types/competitor";
 import {
+  getPlacesSearchKeywords,
+  isPriorityCompetitor,
+  matchPriorityBrand,
+} from "@/data/priority-competitors";
+import {
   distanceKm,
   inferCategoryFromName,
   isSelfStore,
@@ -34,28 +39,20 @@ interface GooglePlaceDetails {
   status: string;
 }
 
-const RETAIL_TYPES = [
-  "department_store",
-  "supermarket",
-  "clothing_store",
-  "shopping_mall",
-  "home_goods_store",
-  "electronics_store",
-];
-
-async function nearbyByType(
+async function nearbySearch(
   lat: number,
   lng: number,
   radiusM: number,
-  type: string,
-  apiKey: string
+  apiKey: string,
+  opts: { type?: string; keyword?: string }
 ): Promise<GoogleNearbyResult[]> {
   const url = new URL(
     "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
   );
   url.searchParams.set("location", `${lat},${lng}`);
   url.searchParams.set("radius", String(radiusM));
-  url.searchParams.set("type", type);
+  if (opts.type) url.searchParams.set("type", opts.type);
+  if (opts.keyword) url.searchParams.set("keyword", opts.keyword);
   url.searchParams.set("key", apiKey);
 
   const res = await fetch(url.toString(), { next: { revalidate: 0 } });
@@ -65,7 +62,7 @@ async function nearbyByType(
     status: string;
   };
   if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-    console.warn(`NearbySearch ${type}:`, data.status);
+    console.warn(`NearbySearch:`, data.status, opts);
     return [];
   }
   return data.results ?? [];
@@ -99,33 +96,55 @@ export async function fetchGoogleCompetitors(
   apiKey: string
 ): Promise<Competitor[]> {
   const radiusM = Math.min(Math.round(radiusKm * 1000), 50000);
-
-  const batches = await Promise.all(
-    RETAIL_TYPES.map((type) => nearbyByType(lat, lng, radiusM, type, apiKey))
-  );
-
   const byId = new Map<string, GoogleNearbyResult>();
-  for (const batch of batches) {
+
+  const add = (batch: GoogleNearbyResult[]) => {
     for (const place of batch) {
+      if (!place.place_id || isSelfStore(place.name)) continue;
       if (!byId.has(place.place_id)) byId.set(place.place_id, place);
     }
+  };
+
+  const keywords = getPlacesSearchKeywords();
+  const batchSize = 8;
+  for (let i = 0; i < keywords.length; i += batchSize) {
+    const chunk = keywords.slice(i, i + batchSize);
+    const batches = await Promise.all(
+      chunk.map((keyword) =>
+        nearbySearch(lat, lng, radiusM, apiKey, { keyword })
+      )
+    );
+    batches.forEach(add);
   }
 
+  const typeBatches = await Promise.all(
+    ["department_store", "supermarket", "clothing_store", "shopping_mall"].map(
+      (type) => nearbySearch(lat, lng, radiusM, apiKey, { type })
+    )
+  );
+  typeBatches.forEach(add);
+
   const nearby = [...byId.values()]
-    .filter((p) => !isSelfStore(p.name))
+    .filter((p) => isPriorityCompetitor(p.name))
     .map((p) => ({
       ...p,
-      dist: distanceKm(lat, lng, p.geometry.location.lat, p.geometry.location.lng),
+      dist: distanceKm(
+        lat,
+        lng,
+        p.geometry.location.lat,
+        p.geometry.location.lng
+      ),
     }))
-    .filter((p) => p.dist <= radiusKm)
+    .filter((p) => p.dist <= radiusKm + 0.05)
     .sort((a, b) => a.dist - b.dist)
-    .slice(0, 24);
+    .slice(0, 40);
 
   const detailed = await Promise.all(
     nearby.map(async (place, index) => {
       const details = await placeDetails(place.place_id, apiKey);
       const types = details?.types ?? place.types ?? [];
       const name = details?.name ?? place.name;
+      const match = matchPriorityBrand(name);
       const category =
         mapTypesToCategory(types) === "Other"
           ? inferCategoryFromName(name)
@@ -137,13 +156,12 @@ export async function fetchGoogleCompetitors(
       const competitor: Competitor = {
         id: place.place_id || `g-${index}`,
         name,
-        brand: name.split(/[,|-]/)[0].trim(),
+        brand: match?.brand ?? name.split(/[,|-]/)[0].trim(),
         category,
         distanceKm: Math.round(place.dist * 10) / 10,
         rating: details?.rating ?? place.rating ?? null,
         ratingCount:
           details?.user_ratings_total ?? place.user_ratings_total ?? null,
-        // Google Places does not expose store open date or floor area
         openedOn: null,
         address:
           details?.formatted_address ?? place.vicinity ?? "Address unavailable",

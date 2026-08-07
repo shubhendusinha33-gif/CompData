@@ -10,7 +10,7 @@ import {
   type BulkResultRow,
   type BulkStoreRow,
 } from "@/lib/csv";
-import { reverseGeocodeStoreName } from "@/lib/reverse-geocode";
+import { resolveStoreName } from "@/lib/resolve-store-name";
 import { searchCompetitors } from "@/lib/search-competitors";
 import { competitorsToCsvRows } from "@/lib/csv";
 
@@ -66,9 +66,10 @@ export default function BulkUploadPanel({
 
         let storeName = `VMM — ${store.storeCd}`;
         try {
-          const geo = await reverseGeocodeStoreName(
+          const geo = await resolveStoreName(
             store.lat,
             store.lng,
+            apiKey,
             controller.signal
           );
           storeName = geo.storeName;

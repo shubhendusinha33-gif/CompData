@@ -52,7 +52,7 @@ export default function StoreSearchForm({
             <input
               value={values.name}
               onChange={(e) => onChange({ ...values, name: e.target.value })}
-              placeholder="Auto-fills from lat/long — e.g. VMM — Dwarka Mod"
+              placeholder="Auto from Google — e.g. Vishal Mega Mart Dwarka Mod"
             />
             <button
               type="button"

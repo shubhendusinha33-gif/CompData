@@ -22,7 +22,7 @@ import {
   setStoredApiKey,
 } from "@/lib/google-places-browser";
 import { searchCompetitors } from "@/lib/search-competitors";
-import { reverseGeocodeStoreName } from "@/lib/reverse-geocode";
+import { resolveStoreName } from "@/lib/resolve-store-name";
 import {
   bulkResultsToCsv,
   competitorsToCsvRows,
@@ -106,7 +106,7 @@ export default function Dashboard() {
     setResolvingName(true);
     setError(null);
     try {
-      const { storeName } = await reverseGeocodeStoreName(lat, lng);
+      const { storeName } = await resolveStoreName(lat, lng, form.apiKey);
       setForm((prev) => ({ ...prev, name: storeName }));
     } catch (e) {
       setError(
@@ -115,7 +115,7 @@ export default function Dashboard() {
     } finally {
       setResolvingName(false);
     }
-  }, [form.lat, form.lng]);
+  }, [form.lat, form.lng, form.apiKey]);
 
   const downloadCurrentCsv = useCallback(() => {
     const rows = competitorsToCsvRows(store, competitors, source);
@@ -139,9 +139,10 @@ export default function Dashboard() {
 
     void (async () => {
       try {
-        const { storeName } = await reverseGeocodeStoreName(
+        const { storeName } = await resolveStoreName(
           Number(initial.lat),
-          Number(initial.lng)
+          Number(initial.lng),
+          savedKey
         );
         const named = { ...initial, name: storeName };
         setForm(named);
@@ -153,7 +154,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-resolve name when lat/lng change (debounced) without hanging UI
+  // Auto-resolve exact VMM Google place name when lat/lng change (debounced)
   useEffect(() => {
     if (!bootstrapped.current) return;
     const lat = Number(form.lat);
@@ -164,7 +165,7 @@ export default function Dashboard() {
       void (async () => {
         try {
           setResolvingName(true);
-          const { storeName } = await reverseGeocodeStoreName(lat, lng);
+          const { storeName } = await resolveStoreName(lat, lng, form.apiKey);
           setForm((prev) =>
             prev.lat === String(lat) && prev.lng === String(lng)
               ? { ...prev, name: storeName }
@@ -180,7 +181,7 @@ export default function Dashboard() {
 
     return () => window.clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.lat, form.lng]);
+  }, [form.lat, form.lng, form.apiKey]);
 
   const scrollToAnalysis = () => {
     analysisRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
