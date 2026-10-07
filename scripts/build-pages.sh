@@ -20,3 +20,9 @@ fi
 
 cd "$ROOT"
 GITHUB_PAGES=1 npx next build
+
+# GitHub Pages is served from /docs on the configured branch — keep it in sync.
+rm -rf "$ROOT/docs"
+mkdir -p "$ROOT/docs"
+cp -a "$ROOT/out/." "$ROOT/docs/"
+touch "$ROOT/docs/.nojekyll"
