@@ -93,6 +93,7 @@ export async function fetchGoogleCompetitors(
         id: p.place_id,
         name,
         brand: match.brand,
+        parentCompany: match.parentCompany,
         category,
         distanceKm: Math.round(dist * 10) / 10,
         rating: p.rating ?? null,

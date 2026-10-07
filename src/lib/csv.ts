@@ -15,6 +15,7 @@ export interface BulkResultRow {
   radiusKm: number;
   competitorBrand: string;
   competitorName: string;
+  parentCompany: string;
   category: string;
   distanceKm: number | "";
   rating: string;
@@ -131,6 +132,7 @@ export function competitorsToCsvRows(
         radiusKm: store.radiusKm,
         competitorBrand: "",
         competitorName: "",
+        parentCompany: "",
         category: "",
         distanceKm: "",
         rating: "",
@@ -153,6 +155,7 @@ export function competitorsToCsvRows(
     radiusKm: store.radiusKm,
     competitorBrand: c.brand,
     competitorName: c.name,
+    parentCompany: c.parentCompany,
     category: c.category,
     distanceKm: c.distanceKm,
     rating: c.rating != null ? String(c.rating) : "",
@@ -174,6 +177,7 @@ const RESULT_HEADERS = [
   "Radius km",
   "Competitor brand",
   "Competitor name",
+  "Mother company",
   "Category",
   "Distance km",
   "Google rating",
@@ -198,6 +202,7 @@ export function bulkResultsToCsv(rows: BulkResultRow[]): string {
         r.radiusKm,
         r.competitorBrand,
         r.competitorName,
+        r.parentCompany,
         r.category,
         r.distanceKm,
         r.rating,
