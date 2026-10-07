@@ -11,6 +11,7 @@ export interface Competitor {
   id: string;
   name: string;
   brand: string;
+  parentCompany: string;
   category: CompetitorCategory;
   distanceKm: number;
   rating: number | null;

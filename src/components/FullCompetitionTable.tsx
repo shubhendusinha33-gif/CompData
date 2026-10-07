@@ -42,8 +42,9 @@ export default function FullCompetitionTable({
         <div>
           <h2>Review — full competition analysis</h2>
           <p className="panel-sub">
-            One nearest store per priority brand — Landmark Lifestyle only (not
-            generic “Lifestyle” shops)
+            Official national chains only (plus listed regionals). Mother
+            company is shown so D-Mart is Avenue Supermarts, Zudio is Trent —
+            not local lookalikes.
           </p>
         </div>
         <span className="count-pill">{rows.length} brands</span>
@@ -55,7 +56,7 @@ export default function FullCompetitionTable({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search brand / address / category"
+            placeholder="Search brand / mother company / address"
             aria-label="Search full competitor list"
           />
         </label>
@@ -80,6 +81,7 @@ export default function FullCompetitionTable({
           <thead>
             <tr>
               <th>Brand</th>
+              <th>Mother company</th>
               <th>Rating</th>
               <th>Distance</th>
               <th>Category</th>
@@ -115,6 +117,7 @@ export default function FullCompetitionTable({
                     </div>
                   </div>
                 </td>
+                <td className="muted small">{c.parentCompany || "—"}</td>
                 <td>
                   {c.rating != null ? (
                     <div className="rating-cell">
@@ -156,7 +159,7 @@ export default function FullCompetitionTable({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="empty-cell">
+                <td colSpan={8} className="empty-cell">
                   No matching priority competitors.
                 </td>
               </tr>

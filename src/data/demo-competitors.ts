@@ -1,10 +1,14 @@
 import type { Competitor } from "@/types/competitor";
+import { getParentCompany } from "@/data/priority-competitors";
 import { distanceKm } from "@/lib/geo";
 
 /**
  * Demo competitors drawn from the priority organized-retailer list.
  */
-const DEMO_OFFSETS: Omit<Competitor, "id" | "distanceKm" | "lat" | "lng">[] = [
+const DEMO_OFFSETS: Omit<
+  Competitor,
+  "id" | "distanceKm" | "lat" | "lng" | "parentCompany"
+>[] = [
   {
     name: "Zudio",
     brand: "ZUDIO",
@@ -212,6 +216,7 @@ export function buildDemoCompetitors(
     const dist = distanceKm(originLat, originLng, lat, lng);
     return {
       ...item,
+      parentCompany: getParentCompany(item.brand),
       id: `demo-${i + 1}`,
       lat,
       lng,

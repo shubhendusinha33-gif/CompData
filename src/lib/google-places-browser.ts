@@ -250,6 +250,7 @@ export async function fetchBrowserGoogleCompetitors(
         id: place.place_id || `g-browser-${index}`,
         name,
         brand: match.brand,
+        parentCompany: match.parentCompany,
         category,
         distanceKm: Math.round(dist * 10) / 10,
         rating: place.rating ?? null,

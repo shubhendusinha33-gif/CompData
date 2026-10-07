@@ -207,12 +207,130 @@ const CORPORATE_MARKERS: Record<string, string[]> = {
   "SHUBHAM K MART": ["SHUBHAM K MART PRIVATE LIMITED"],
 };
 
+/**
+ * First tokens that MUST lead the Google place name for high-confusion brands.
+ * "Vivid Mart" cannot be D-Mart: it does not start with D / DMART / Avenue.
+ */
+const LEAD_REQUIRED: Record<string, string[][]> = {
+  "D-MART": [
+    ["D", "MART"],
+    ["DMART"],
+    ["AVENUE", "SUPERMARTS"],
+    ["AVENUE", "SUPERMART"],
+  ],
+  "V-MART": [["V", "MART"], ["VMART"]],
+  LIFESTYLE: [["LIFESTYLE"], ["LANDMARK"]],
+  "MAX RETAIL": [["MAX"]],
+  "SPAR HYPERMARKET": [["SPAR"]],
+  JIOMART: [["JIOMART"], ["JIO", "MART"]],
+  "SHUBHAM K MART": [["SHUBHAM"]],
+  CAPIAN: [["CAPIAN"], ["CAPIYAN"]],
+  "BIG MART": [["BIG", "MART"]],
+  "GRAND MART": [["GRAND", "MART"]],
+  "NATIONAL MART": [["NATIONAL", "MART"]],
+  "ELENTA MART": [["ELENTA"]],
+};
+
+/** Listed brand → parent / mother company for CEO presentations. */
+const PARENT_COMPANY: Record<string, string> = {
+  "1 INDIA FAMILY MART": "1 India Family Mart Private Limited",
+  "BAZAAR KOLKATA": "Bazaar Kolkata",
+  "BAZAR INDIA": "Bazaar India Retail",
+  "BRAND FACTORY": "Future Lifestyle Fashion Limited",
+  "CITI STYLE": "Citi Style",
+  "CITY KART": "Citykart Retail Private Limited",
+  "COSMO BAZAAR": "Cosmo Bazaar",
+  "D-MART": "Avenue Supermarts Limited",
+  EASYBUY: "Landmark Group",
+  "FASHION CITY": "Fashion City",
+  LIFESTYLE: "Landmark Group",
+  "M BAZAAR": "M Bazaar",
+  "MAX RETAIL": "Landmark Group",
+  "MEGA SHOP": "Mega Shop",
+  "MORE MEGA STORE": "More Retail Limited",
+  "MORE SUPERMARKET": "More Retail Limited",
+  PANTALOONS: "Aditya Birla Fashion and Retail Limited",
+  "RELIANCE DIGITAL": "Reliance Retail Limited",
+  "RELIANCE FRESH": "Reliance Retail Limited",
+  "RELIANCE FRESH SIGNATURE": "Reliance Retail Limited",
+  "RELIANCE MARKET": "Reliance Retail Limited",
+  "RELIANCE SMART": "Reliance Retail Limited",
+  "RELIANCE SMART BAZAAR": "Reliance Retail Limited",
+  "RELIANCE SMART POINT": "Reliance Retail Limited",
+  "RELIANCE TRENDS": "Reliance Retail Limited",
+  "SHOPPERS STOP": "Shoppers Stop Limited",
+  "SPAR HYPERMARKET": "Landmark Group",
+  "SPENCER'S": "Spencer's Retail Limited",
+  "STYLE BAZAAR": "Style Bazaar",
+  "STYLE UNION": "Instyle Brands Private Limited",
+  "STYLE UP": "Style Up",
+  "TATA STAR BAZAAR HYPERMARKET": "Trent Limited",
+  "TATA STAR MARKET": "Trent Limited",
+  UNLIMITED: "Future Lifestyle Fashion Limited",
+  V2: "V2 Retail Limited",
+  "V-BAZAAR": "V-Bazaar",
+  "V-MART": "V-Mart Retail Limited",
+  WESTSIDE: "Trent Limited",
+  YOUSTA: "Reliance Retail Limited",
+  ZUDIO: "Trent Limited",
+  BLINKIT: "Eternal Limited",
+  ZECODE: "Zecode",
+  "NATIONAL MART": "National Mart",
+  "EXPRESS BAZAAR": "Express Bazaar",
+  "SHUBHAM K MART": "Shubham K-Mart Private Limited",
+  CAPIAN: "Capian",
+  "RAJ MANDIR": "Raj Mandir",
+  DYI: "Mr D.I.Y. Group Berhad",
+  "KPN SUPERMARKET": "KPN Retails",
+  "BIG DAY HYPERMARKET": "Big Day Hypermarket",
+  "LULU WHOLESALE MART": "Lulu Group International",
+  "RANK 1": "Rank 1",
+  "FAB INDIA": "Fabindia Limited",
+  SNITCH: "Snitch Apparels Private Limited",
+  ARUNODHYA: "Arunodhya",
+  "CHENNAI MALL": "Chennai Mall",
+  YOUTH: "Youth",
+  "BIG MART": "Big Mart",
+  "ROLLA HYPERMARKET": "Rolla Hypermarket",
+  MANGALAYA: "Mangalaya",
+  "FAZIYO BY KALYAN APPARELS": "Kalyan Apparels",
+  STYLOVA: "Stylova",
+  NESTO: "Nesto Group",
+  "RELIANCE FASHION FACTORY": "Reliance Retail Limited",
+  "LULU HYPERMARKET": "Lulu Group International",
+  "ELENTA MART": "Elenta Mart",
+  "MR. DIY": "Mr D.I.Y. Group Berhad",
+  "METRO WHOLESALE": "Metro AG",
+  "START BAZAAR": "Start Bazaar",
+  "SUMIT BAZAAR": "Sumeet Group",
+  "ONE INDIA FASHION": "One India Fashion",
+  "LIME ROAD": "LimeRoad",
+  "RATNADEEP SUPERMARKET": "Ratnadeep Super Market Private Limited",
+  "SUNSAR SUPERMARKET": "Sunsar Supermarket",
+  "NEW SHOPPING BAZAAR": "New Shopping Bazaar",
+  "GRAND MART": "Grand Mart",
+  "RELIANCE FASHION WORLD": "Reliance Retail Limited",
+  CARREFOUR: "Majid Al Futtaim",
+  "OSIA HYPERMART": "Osia Hyper Retail Limited",
+  EASYDAY: "Future Retail Limited",
+  "HERITAGE FRESH": "Heritage Foods Limited",
+  NILGIRIS: "The Nilgiris Dairy Farm Private Limited",
+  "NATURE'S BASKET": "Spencer's Retail Limited",
+  HYPERCITY: "Shoppers Stop Limited",
+  "BEST PRICE": "Walmart India Private Limited",
+  JIOMART: "Reliance Retail Limited",
+};
+
+export function getParentCompany(brand: string): string {
+  return PARENT_COMPANY[brand] ?? "—";
+}
+
 /** Articles / legal prefixes Google sometimes puts in front of the brand. */
-const IGNORABLE_PREFIX = new Set(["THE", "A", "AN", "MS", "M"]);
+const IGNORABLE_PREFIX = new Set(["THE", "A", "AN", "MS"]);
 
 /** Reject non-retail noise when a generic brand word leads the place name. */
 const NON_RETAIL_NOISE =
-  /\b(SPA|SALON|GYM|YOGA|FITNESS|CLINIC|CAFE|COFFEE|RESTAURANT|HOTEL|PG|HOSTEL|COACH|CONSULT|THERAPY|WELLNESS|BEAUTY|PARLOUR|PARLOR|HOSPITAL|HEALTHCARE|HEALTH|INSURANCE|TYRE|TIRE|FURNITURE|INTERIOR|SCHOOL|COLLEGE|BANK|ATM|PETROL|FUEL)\b/;
+  /\b(SPA|SALON|GYM|YOGA|FITNESS|CLINIC|CAFE|COFFEE|RESTAURANT|HOTEL|PG|HOSTEL|COACH|CONSULT|THERAPY|WELLNESS|BEAUTY|PARLOUR|PARLOR|HOSPITAL|HEALTHCARE|HEALTH|INSURANCE|TYRE|TIRE|FURNITURE|INTERIOR|SCHOOL|COLLEGE|BANK|ATM|PETROL|FUEL|FOOTWEAR)\b/;
 
 function normalize(value: string): string {
   return value
@@ -252,26 +370,50 @@ function containsSequence(hay: string[], needle: string[]): boolean {
 
 /**
  * Official chain hit: brand/alias must lead the place name.
- * "D-Mart Whitefield" matches; "K D-Mart" / "KDMart" do not.
+ * "D-Mart Whitefield" matches; "K D-Mart" / "Vivid Mart" / "KDMart" do not.
  */
 function officialLeading(hayRaw: string, needleRaw: string): boolean {
   const hayToks = stripIgnorable(tokens(hayRaw));
   const needleToks = tokens(needleRaw);
   if (!hayToks.length || !needleToks.length) return false;
 
-  if (sequenceAtStart(hayToks, needleToks)) return true;
-
   const hayN = hayToks.join(" ");
   const needleN = needleToks.join(" ");
   const hayC = compact(hayToks.join(" "));
   const needleC = compact(needleRaw);
 
+  // "Vivid Mart" compact is VIVIDMART, which ends with DMART — never a match.
+  if (
+    hayC !== needleC &&
+    hayC.endsWith(needleC) &&
+    !sequenceAtStart(hayToks, needleToks) &&
+    hayToks[0] !== needleC
+  ) {
+    return false;
+  }
+
+  if (sequenceAtStart(hayToks, needleToks)) return true;
   if (hayN === needleN || hayC === needleC) return true;
   if (hayN.startsWith(`${needleN} `)) return true;
   // "DMart Whitefield" → hay "DMART WHITEFIELD", needle "D MART"
   if (hayN.startsWith(`${needleC} `)) return true;
 
   return false;
+}
+
+/** True when the place name starts as the real chain, not a local lookalike. */
+function authenticLead(placeName: string, brand: string): boolean {
+  const hay = stripIgnorable(tokens(placeName));
+  if (!hay.length) return false;
+  if (hasCorporateMarker(placeName, brand)) return true;
+
+  const required = LEAD_REQUIRED[brand];
+  if (required) {
+    return required.some(
+      (seq) => sequenceAtStart(hay, seq) || (seq.length === 1 && hay[0] === seq[0])
+    );
+  }
+  return true;
 }
 
 function hasCorporateMarker(placeName: string, brand: string): boolean {
@@ -282,6 +424,7 @@ function hasCorporateMarker(placeName: string, brand: string): boolean {
 
 export interface PriorityMatch {
   brand: string;
+  parentCompany: string;
   priorityIndex: number;
   score: number;
 }
@@ -327,6 +470,7 @@ export function matchPriorityBrand(placeName: string): PriorityMatch | null {
     }
 
     if (!hit) return;
+    if (!authenticLead(placeName, brand)) return;
 
     // SPAR / V2 / MAX: short tokens must not match inside longer first words.
     if (compact(brand).length <= 3 && !strict) {
@@ -342,7 +486,12 @@ export function matchPriorityBrand(placeName: string): PriorityMatch | null {
       score > best.score ||
       (score === best.score && index < best.priorityIndex)
     ) {
-      best = { brand, priorityIndex: index, score };
+      best = {
+        brand,
+        parentCompany: getParentCompany(brand),
+        priorityIndex: index,
+        score,
+      };
     }
   });
 

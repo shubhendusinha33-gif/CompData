@@ -115,6 +115,9 @@ export default function CompetitorsMap({
           <Popup>
             <strong>{c.name}</strong>
             <br />
+            {c.brand}
+            {c.parentCompany ? ` · ${c.parentCompany}` : ""}
+            <br />
             {c.category} · {formatDistance(c.distanceKm)}
             {c.rating != null && (
               <>

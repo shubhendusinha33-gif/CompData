@@ -42,7 +42,7 @@ export default function TopCompetitorsPanel({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search brand / category"
+            placeholder="Search brand / mother company"
             aria-label="Search competitors"
           />
         </label>
@@ -68,6 +68,7 @@ export default function TopCompetitorsPanel({
           <thead>
             <tr>
               <th>Brand</th>
+              <th>Mother company</th>
               <th>Category</th>
               <th className="text-right">Distance</th>
             </tr>
@@ -89,6 +90,7 @@ export default function TopCompetitorsPanel({
                     </div>
                   </div>
                 </td>
+                <td className="muted small">{c.parentCompany || "—"}</td>
                 <td className="muted">{c.category}</td>
                 <td className="text-right muted">
                   {formatDistance(c.distanceKm)}
@@ -97,7 +99,7 @@ export default function TopCompetitorsPanel({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={3} className="empty-cell">
+                <td colSpan={4} className="empty-cell">
                   No priority competitors in range.
                 </td>
               </tr>

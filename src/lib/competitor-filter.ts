@@ -19,6 +19,7 @@ export function filterPriorityCompetitors(
       return {
         ...c,
         brand: match.brand,
+        parentCompany: match.parentCompany,
         _priorityIndex: match.priorityIndex,
       };
     })
@@ -58,7 +59,7 @@ export function searchCompetitorsList(
   const q = query.trim().toLowerCase();
   if (!q) return competitors;
   return competitors.filter((c) => {
-    const hay = `${c.brand} ${c.name} ${c.category} ${c.address}`.toLowerCase();
+    const hay = `${c.brand} ${c.parentCompany} ${c.name} ${c.category} ${c.address}`.toLowerCase();
     return hay.includes(q);
   });
 }
