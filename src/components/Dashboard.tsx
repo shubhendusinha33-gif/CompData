@@ -299,9 +299,9 @@ export default function Dashboard() {
         </div>
 
         <p className="sidebar-note">
-          Priority organized retailers only — one nearest store per brand.
-          Generic names like local “Lifestyle” shops are excluded (Landmark
-          Lifestyle only).
+          Official chains only, with mother company (D-Mart = Avenue
+          Supermarts Limited, Zudio = Trent Limited). Local lookalikes such as
+          Vivid Mart or “K D-Mart” are excluded.
         </p>
       </aside>
 
@@ -392,12 +392,13 @@ export default function Dashboard() {
 
           <footer className="dash-footer">
             <p>
-              Priority competitor list applied. Opened-on / size fields are
-              illustrative in demo mode and usually unavailable from Google
-              Places.
+              Official-chain matching with mother company. Opened-on / size
+              fields are usually unavailable from Google Places.
             </p>
             <p className="credit">
               Designed and Developed by <strong>Shubhendu Sinha</strong>
+              {" · "}
+              <span className="muted">build 2026-10-07 mother-company</span>
             </p>
           </footer>
         </div>
